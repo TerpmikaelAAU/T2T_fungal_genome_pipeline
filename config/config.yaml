@@ -1,0 +1,16 @@
+
+#Input the names of your samples ie. "barcode1"
+#input: [barcode10]
+input: [barcode10, barcode11, barcode12, barcode14, barcode15, barcode16, barcode17]
+#pod5pass folder
+pod5_folder: "Absolute_Path_pod5_pass"
+
+#absoulte path to dorado
+dorado: /absoulte/path/to/dorado
+
+
+#wildcard for subsampling, removing reads below x kb, this is highly dependent of input data, but for the most part one of these assemblies will resolve into T2T
+length: [10000, 15000, 20000, 25000, 30000]
+
+
+
