@@ -1,0 +1,6 @@
+name: porechop_abi
+channels:
+  - bioconda
+  - conda-forge
+dependencies:
+  - Minimap2=2.28

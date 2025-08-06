@@ -1,0 +1,47 @@
+#command with which to submit tasks as SLURM jobs
+cluster:
+  mkdir -p logs/{rule}/ &&
+  sbatch
+    --parsable
+    --partition={resources.partition}
+    --qos={resources.qos}
+    --cpus-per-task={threads}
+    --gpus={resources.gpus}
+    --mem={resources.mem_mb}
+    --time={resources.runtime}
+    --job-name=smk-{rule}-{wildcards}
+    --output=logs/{rule}/{rule}-{wildcards}-%j.out
+#if rules don't have resources set, use these default values.
+#Note that "mem" will be converted to "mem_mb" under the hood, so mem_mb is prefered
+default-resources:
+  - partition="shared"
+  - qos="normal"
+  #- threads=1
+  - mem_mb=512
+  - gpus=0
+  - runtime="0-01:00:00"
+
+ 
+
+#max threads per job/rule. Will take precedence over anything else. Adjust this
+#before submitting to SLURM and leave threads settings elsewhere untouched
+max-threads: 128
+use-conda: True
+use-singularity: False
+printshellcmds: False
+jobs: 50
+local-cores: 1
+latency-wait: 120
+restart-times: 0
+max-jobs-per-second: 10 #don't touch
+keep-going: True
+rerun-incomplete: True
+scheduler: greedy
+max-status-checks-per-second: 5
+cluster-cancel: scancel
+#script to get job status for snakemake, unfortunately neccessary
+cluster-status: extras/slurm-status.sh
+
+
+
+
