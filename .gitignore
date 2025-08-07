@@ -1,0 +1,12 @@
+logs/**
+.snakemake
+.snakemake/**
+0.0.1/
+0.0.1/**
+data/** 
+snake_log/** 
+tmp/
+busco_downloads/
+busco_downloads/** 
+.temp_dorado_model*/
+.temp_dorado_model*/** 
