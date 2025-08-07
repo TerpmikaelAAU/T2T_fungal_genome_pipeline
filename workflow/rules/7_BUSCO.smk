@@ -19,7 +19,7 @@ rule busco:
     shell:
         """
         
-        busco -i {input.a} -o {output.dir} -l fungi_odb12 -m geno -f -c $(nproc) --metaeuk --tar
+        busco -i {input.a} -o {output.dir} -l fungi_odb10 -m geno -f -c $(nproc) --metaeuk --tar
         
         
         """
