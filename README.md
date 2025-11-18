@@ -1,6 +1,6 @@
 ## Article
-PrePrint: "Gapless near Telomer-to-Telomer Assembly of Neurospora intermedia, Aspergillus oryzae, and Trichoderma asperellum from Nanopore Simplex Reads"
-https://www.preprints.org/manuscript/202508.1644/v1
+Paper: "Gapless near Telomer-to-Telomer Assembly of Neurospora intermedia, Aspergillus oryzae, and Trichoderma asperellum from Nanopore Simplex Reads"
+https://doi.org/10.3390/jof11100701
 
 ## Raw data requirements
 Nanopore fungal DNA sequenced with kit 10.4 chemistry -> Demultiplexed pod5 data
