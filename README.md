@@ -20,7 +20,7 @@ Run the below code, in the terminal
 After this finishes you should have a snakemake env called "snakemake_run". 
 # 0.4
 Now we need to download dorado which we use for basecalling, read error correction and polishing.
-Download dorado from https://github.com/nanoporetech/dorado , the file called "dorado-0.9.6-linux-x64", upload to server into a folder for example called dorado. 
+Download dorado from https://github.com/nanoporetech/dorado , the file called "dorado-0.9.6-linux-x64", upload to server into the folder dorado_model. 
 cd into the folder, i.e. cd "path to dorado folder"
 Unzip the dorado file:
 `tar -xvzf <file_name>.tar.gz`
