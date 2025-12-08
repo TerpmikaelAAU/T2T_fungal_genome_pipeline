@@ -10,7 +10,7 @@
 #SBATCH --partition=shared
 #SBATCH --time=3-00:00:00
 #SBATCH --mail-type=ALL
-#SBATCH --mail-user=mter@bio.aau.dk
+#SBATCH --mail-user=
 #Version 06-12-2024 - Mikael Terp
 # Exit on first error and if any variables are unset
 set -eu
