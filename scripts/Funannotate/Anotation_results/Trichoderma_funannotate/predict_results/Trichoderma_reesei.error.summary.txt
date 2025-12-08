@@ -1,0 +1,2 @@
+   131 WARNING: SEQ_FEAT.ShortExon
+     8 INFO:    SEQ_FEAT.RareSpliceConsensusDonor

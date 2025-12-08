@@ -1,0 +1,2 @@
+    65 WARNING: SEQ_FEAT.ShortExon
+    40 INFO:    SEQ_FEAT.RareSpliceConsensusDonor
