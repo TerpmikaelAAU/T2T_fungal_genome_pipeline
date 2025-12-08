@@ -10,3 +10,5 @@ busco_downloads/
 busco_downloads/** 
 .temp_dorado_model*/
 .temp_dorado_model*/** 
+dorado_model/*
+dorado_model
