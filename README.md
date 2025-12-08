@@ -4,7 +4,7 @@ https://doi.org/10.3390/jof11100701
 
 ## Raw data requirements
 Nanopore fungal DNA sequenced with kit 10.4 chemistry -> Demultiplexed pod5 data
-At least 100 x coverage Q10< (Less can work as show in the paper, but sequence to a high depth just to be sure)
+At least 100 x coverage Q10< (Less can work as shown in the paper, but sequence to a high depth just to be sure)
 ## Instructions
 # 0.1
 Download this repository to you PC by clicking on "<> Code" and then "Download zip". Unzip the file and upload the folder to the server.
