@@ -26,7 +26,7 @@ rule hifiasm:
         runtime=resources["hifiasm"]["time"],
         partition="general"
     conda:
-        "hifiasm.yml"
+        "../envs/hifiasm.yml"
         
     shell:
         """

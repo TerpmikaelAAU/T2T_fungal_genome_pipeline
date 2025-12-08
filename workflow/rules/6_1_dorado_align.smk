@@ -12,7 +12,7 @@ rule dorado_align:
         runtime=resources["dorado_align"]["time"],
         partition="shared"
     conda:
-        "samtools.yml"
+        "../envs/samtools.yml"
     shell:
         """
         "{config[dorado]}" aligner {input.a} {input.b} | samtools sort --threads $(nproc) > {output.a}  

@@ -11,7 +11,7 @@ rule bam_to_fastq:
         mem_mb=resources["chopper"]["mem_mb"],
         runtime=resources["chopper"]["time"]
     conda:
-        "samtools.yml"
+        "../envs/samtools.yml"
     shell:
         """
         samtools fastq --threads $(nproc) {input.a} > {output.a}  

@@ -11,7 +11,7 @@ rule chopper_dorado:
         mem_mb=resources["chopper"]["mem_mb"],
         runtime=resources["chopper"]["time"]
     conda:
-        "chopper.yml"
+        "../envs/chopper.yml"
     shell:
         """
         chopper -q 10 -l 10000 --threads $(nproc) < {input.a} > {output.a}

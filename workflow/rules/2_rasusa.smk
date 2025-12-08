@@ -11,7 +11,7 @@ rule rasusa:
         mem_mb=resources["rasusa"]["mem_mb"],
         runtime=resources["rasusa"]["time"]
     conda:
-        "rasusa.yml"
+        "../envs/rasusa.yml"
     shell:
         """
         rasusa reads --coverage 100 --genome-size 40mb --seed 1 -o {output.a} {input.a}

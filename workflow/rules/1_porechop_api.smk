@@ -12,7 +12,7 @@ rule porechop_abi:
         mem_mb=resources["porechop_api"]["mem_mb"],
         runtime=resources["porechop_api"]["time"]
     conda:
-        "porechop_abi.yml"
+        "../envs/porechop_abi.yml"
     shell:
         """
         porechop_abi --ab_initio -i {input} -o {output.a}

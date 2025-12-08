@@ -12,7 +12,7 @@ rule getorganelle:
         runtime=resources["busco"]["time"],
         partition="shared"
     conda:
-       "getorganelle.yml"
+       "../envs/getorganelle.yml"
     shell:
         """
         get_organelle_from_assembly.py -F fungus_mt -g {input.a} --config-dir "0.0.1" -o {output.dir} -t $(nproc) --overwrite

@@ -11,7 +11,7 @@ rule seqtk_fasta_to_fastq:
         mem_mb=resources["seqkit"]["mem_mb"],
         runtime=resources["seqkit"]["time"]
     conda:
-        "seqtk.yml"
+        "../envs/seqtk.yml"
     shell:
         """
         seqtk seq -F '#' {input.a} > {output.a}
