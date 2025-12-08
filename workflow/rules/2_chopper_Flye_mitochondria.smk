@@ -12,7 +12,7 @@ rule chopper_flye:
         mem_mb=resources["chopper"]["mem_mb"],
         runtime=resources["chopper"]["time"]
     conda:
-        "chopper.yml"
+        "../envs/chopper.yml"
     shell:
         """
         chopper -q 20 -l 20000 --threads $(nproc) < {input.a} > {output.a}

@@ -15,7 +15,7 @@ rule flye:
         runtime=resources["flye"]["time"],
         partition="general"
     conda:
-        "Flye.yml"
+        "../envs/Flye.yml"
     shell:
         """
        

@@ -15,7 +15,7 @@ rule busco:
         partition="general"
         #
     conda:
-       "BUSCO.yml"
+       "../envs/BUSCO.yml"
     shell:
         """
         
