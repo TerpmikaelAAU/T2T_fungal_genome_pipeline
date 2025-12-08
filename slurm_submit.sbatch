@@ -16,7 +16,7 @@ set -eu
 # Activate conda environment with only snakemake
 conda activate snakemake_run
 ###First time running the workflow###
-snakemake --profile profile -s Snakefile --conda-create-envs-only
+snakemake --profile profile -s Snakefile --conda-frontend conda --use-conda --conda-create-envs-only
 ##After you run the above line to create all the envs, comment the above line, uncomment the line below #Main workflow. and change time=7-00:00:00, cpus-per-task=1, --mem=1G
 
 # Start workflow using resources defined in the profile. Snakemake itself 
@@ -24,7 +24,7 @@ snakemake --profile profile -s Snakefile --conda-create-envs-only
 
 
 # Main workflow
-#snakemake --profile profile -s Snakefile 
+#snakemake --profile profile -s Snakefile --conda-frontend conda --use-conda
 #If the workflow crashes unlock with "--unlock", add to the line ^. Run it, then remove the unlock flag and rerun. 
 
 
