@@ -1,2 +1,0 @@
-   110 WARNING: SEQ_FEAT.ShortExon
-    12 INFO:    SEQ_FEAT.RareSpliceConsensusDonor
