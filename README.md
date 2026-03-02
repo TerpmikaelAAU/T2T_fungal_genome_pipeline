@@ -58,5 +58,7 @@ If you only have FASTQ data, you also have to skip dorado polishing (Rule 6_1,6_
 
 In the /scripts folder, the code to make the figures presented in the paper is available. They 'relatively barebones, but with some manual work they should be able to run for you. 
 
+If you do not want to run into dependency hell DO NOT set your conda channel priority to strict.
+
 
 
