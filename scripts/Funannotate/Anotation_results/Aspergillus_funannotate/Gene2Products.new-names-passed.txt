@@ -1,0 +1,34 @@
+#Name	Passed Description
+AA11A	AA11 lytic polysaccharide monooxygenase A
+AA17	AA9 lytic polysaccharide monooxygenase aa17
+AKT7	Cytochrome P450 monooxygenase akt7
+BENA56	Tubulin beta chain
+BNA11	3-hydroxyanthranilate 3,4-dioxygenase 1
+BNA12	3-hydroxyanthranilate 3,4-dioxygenase 2
+BNA52	Kynureninase 2
+DLH2	Dienlactone hydrolase 2
+ERG3A	Delta(7)-sterol 5(6)-desaturas erg3A
+ERG3B	Delta(7)-sterol 5(6)-desaturase erg3B
+ERG4A	Delta(24(24(1)))-sterol reductase erg4A
+ERG10B	Acetyl-CoA acetyltransferase erg10B, cytosolic
+ERG13A	Hydroxymethylglutaryl-CoA synthase erg13A
+ERG13B	Hydroxymethylglutaryl-CoA synthase erg13B
+ERG24A	Delta(14)-sterol reductase erg24A
+ERG24B	Delta(14)-sterol reductase erg24b
+ERG25A	Methylsterol monooxygenase erg25A
+ERG25B	Methylsterol monooxygenase erg25B
+FGAQP2	Probable aquaglyceroporin-2
+FGR3	Acetyltransferase fgr3
+KAP2	Probable cell surface ferric reductase kap2
+KAP6	Kojic acid protein 6
+LEU2A	3-isopropylmalate dehydrogenase A
+LPMO9I	AA9 lytic polysaccharide monooxygenase I
+LYSM1	Secreted LysM effector LysM1
+MIP11	MST50-interacting protein 11
+MST7	Mitogen-activated protein kinase kinae mst7
+PEL9	Pectate lyase pel9
+PKS27	Non-reducing polyketide synthase pks27
+RPS13A	Small ribosomal subunit protein uS15z
+RSTN3	Highly reducing polyketide synthase rstn3
+SGT12	Heat-shock protein cognate (HSC) co-chaperone sgt12
+XYLL43A	Xylosidase/arabinosidase 43A
