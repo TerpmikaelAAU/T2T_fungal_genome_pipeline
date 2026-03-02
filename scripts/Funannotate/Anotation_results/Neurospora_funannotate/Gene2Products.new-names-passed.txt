@@ -1,0 +1,89 @@
+#Name	Passed Description
+AAP2	Amino-acid permease 2
+ABF43	Alpha-L-arabinofuranosidase 43
+ACE8	Pyruvate kinase
+ADS1	Transcription factor ads-1
+APG1	Serine/threonine-protein kinase apg-1
+APG2	Autophagy-related protein 2
+APG3	Autophagy-related protein 3
+APG4	Autophagy-related protein 5
+APG8	Autophagy-related protein 11
+APG10	Autophagy-related protein 18
+APG11	Autophagy-related protein 22
+APG13	Vacuolar fusion protein mon1
+APG14	SVP1-like protein 2
+ARG14	Amino-acid acetyltransferase, mitochondrial
+CHOL1	Phosphatidylethanolamine N-methyltransferase
+COT2	Glucan synthesis regulatory protein
+COX24	Small ribosomal subunit protein mS38
+CPC1	Cross-pathway control protein 1
+CRC2	SWR1-complex protein 5
+CRF11	Helicase swr-1
+CTC2	FACT complex subunit ctc-2
+CYT4	Mitochondrial protein cyt-4
+CYT5	DNA-directed RNA polymerase, mitochondrial
+CYT18	Tyrosine--tRNA ligase, mitochondrial
+DNR8	Flap endonuclease 1
+DRH10	ATP-dependent RNA helicase dhh1
+DRH16	ATP-dependent RNA helicase rok1
+EPP1	Endopolyphosphatase
+ERG3C	Delta(7)-sterol 5(6)-desaturase erg3C
+ERG5A	C-22 sterol desaturase erg5a
+ERG25B	Methylsterol monooxygenase erg25B
+FAC2	F-actin-capping protein subunit beta
+FES4	Iron-sulfur clusters transporter atm1, mitochondrial
+FKR2	FK506-binding protein 1A
+FKR4	FK506-binding protein 4
+GSL3	3-ketodihydrosphingosine reductase gsl-3
+HAM7	Lytic polysaccharide monooxygenase-like protein ham-7
+HET6	Heterokaryon incompatibility protein 6, OR allele
+HH1	Histone H1
+HLM1	Histone-lysine N-methyltransferase set9
+KGD4	Alpha-ketoglutarate dehydrogenase subunit 4, mitochondrial
+KK1H	D-lactate dehydrogenase kk1H
+KPR3	Probable kinetochore protein spc24
+LCM2	tRNA wybutosine-synthesizing protein 4
+LPMO9A	AA9 lytic polysaccharide monooxygenase A
+LPMO9D	AA9 lytic polysaccharide monooxygenase D
+LPMO9F	AA9 lytic polysaccharide monooxygenase F
+LPMO9H	AA9 lytic polysaccharide monooxygenase H
+MSP6	Pre-mRNA-splicing factor cwc25
+MSP40	Pre-mRNA-splicing factor spp2
+MSP45	Mitochondrial escape protein 2
+MST7	Mitogen-activated protein kinase kinae mst7
+MST11	Mitogen-activated protein kinase kinae kinase mst11
+MUS11	DNA repair and recombination protein mus-11
+MUS21	Serine/threonine-protein kinase tel1
+MUS52	ATP-dependent DNA helicase II subunit 2
+MUS53	DNA ligase 4
+NMP1	Nuclear distribution protein nudF-2
+NMP2	Nuclear distribution protein nudF-1
+PAA7	mRNA cleavage and polyadenylation factor clp1
+PFT1	Protoheme IX farnesyltransferase, mitochondrial
+PPI2	Peptidyl-prolyl cis-trans isomerase-like 2
+PREU9	Polyketide synthase-like protein Preu9
+PRR4	pH-response regulator protein palH/prr-4
+PRR5	pH-response regulator protein palI/prr-5
+PTR4	Palmitoyltransferase pfa4
+RBG5	U3 small nucleolar RNA-associated protein 10
+RBG52	Ribosome bioproteinsis protein nsa2
+RCD12	Gasdermin-like protein rcd-1-2
+RGE13	Hydroxymethylglutaryl-CoA synthase ERG13
+RO11	Nuclear distribution protein nudE 1
+RPR8	25S rRNA (adenine-N(1))-methyltransferase
+RPS13A	Small ribosomal subunit protein uS15z
+RRM9	Pre-rRNA-processing protein ipi1
+TBA1	Tubulin alpha-A chain
+TCF29	General transcription and DNA repair factor IIH subunit tcf-29
+TSP2	Probable tRNA-splicing endonuclease subunit tsp-2
+TSP4	Probable tRNA-splicing endonuclease subunit tsp-4
+TSP5	Probable tRNA-splicing endonuclease subunit tsp-5
+UN7	Protein png-1
+UVS2	Postreplication repair E3 ubiquitin-protein ligase rad18
+VSP3	Vacuolar-sorting protein snf7
+VSP5	Sorting nexin-4
+VTR7	Small COPII coat GTPase sar1
+XYL43B	Xylosidase/arabinosidase 43B
+XYLL43A	Xylosidase/arabinosidase 43A
+XYN11B	Endo-1,4-beta-xylanase 11B
+YLO1	Beta-apo-4'-carotenal oxygenase

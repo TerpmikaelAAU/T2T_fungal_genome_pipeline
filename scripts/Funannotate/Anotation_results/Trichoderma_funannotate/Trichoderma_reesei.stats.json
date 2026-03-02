@@ -1,0 +1,119 @@
+{
+    "format": "annotation",
+    "command": "/home/bio.aau.dk/zl01hh/.conda/envs/funannotate/bin/funannotate annotate -i funannotate_results/Trichoderma_funannotate/predict -o funannotate_results/Trichoderma_funannotate/annotate -s Trichoderma reesei --antismash funannotate_results/Trichoderma_funannotate/antismash/Trichoderma_reesei.gbk --iprscan funannotate_results/Trichoderma_funannotate/interproscan/Trichoderma_reesei.XML --fasta funannotate_results/Trichoderma_funannotate/Trichoderma_reesei_masked.fasta",
+    "organism": "Trichoderma_reesei",
+    "software": {
+        "name": "funannotate",
+        "version": "1.8.17",
+        "date": "2025-04-14",
+        "resources": {
+            "merops": {
+                "type": "diamond",
+                "version": "12.0",
+                "date": "2017-10-04",
+                "num-records": "5098"
+            },
+            "uniprot": {
+                "type": "diamond",
+                "version": "2025_01",
+                "date": "2025-02-05",
+                "num-records": "572970"
+            },
+            "dbCAN": {
+                "type": "hmmer3",
+                "version": "13.0",
+                "date": "2024-08-14",
+                "num-records": "699"
+            },
+            "pfam": {
+                "type": "hmmer3",
+                "version": "37.2",
+                "date": "2024-11",
+                "num-records": "24076"
+            },
+            "repeats": {
+                "type": "diamond",
+                "version": "1.0",
+                "date": "2025-03-31",
+                "num-records": "11950"
+            },
+            "go": {
+                "type": "text",
+                "version": "2025-03-16",
+                "date": "2025-03-16",
+                "num-records": "48030"
+            },
+            "mibig": {
+                "type": "diamond",
+                "version": "1.4",
+                "date": "2025-03-31",
+                "num-records": "31023"
+            },
+            "interpro": {
+                "type": "xml",
+                "version": "104.0",
+                "date": "2025-02-06",
+                "num-records": "47677"
+            },
+            "busco_outgroups": {
+                "type": "outgroups",
+                "version": "1.0",
+                "date": "2025-03-31",
+                "num-records": "8"
+            },
+            "gene2product": {
+                "type": "text",
+                "version": "1.94",
+                "date": "2024-07-07",
+                "num-records": "34464"
+            }
+        }
+    },
+    "assembly": {
+        "num_contigs": 7,
+        "length": 36909175,
+        "mean_length": 5272739.29,
+        "N50": 5574891,
+        "L50": 3,
+        "N90": 3849190,
+        "L90": 7,
+        "GC_content": 47.46
+    },
+    "annotation": {
+        "genes": 9805,
+        "common_name": 970,
+        "mRNA": 9589,
+        "tRNA": 216,
+        "ncRNA": 0,
+        "rRNA": 0,
+        "avg_gene_length": 1618.65,
+        "transcript-level": {
+            "CDS_transcripts": 9589,
+            "CDS_five_utr": 0,
+            "CDS_three_utr": 0,
+            "CDS_no_utr": 9589,
+            "CDS_five_three_utr": 0,
+            "CDS_complete": 9577,
+            "CDS_no-start": 5,
+            "CDS_no-stop": 7,
+            "CDS_no-start_no-stop": 0,
+            "total_exons": 24720,
+            "total_cds_exons": 24720,
+            "multiple_exon_transcript": 7318,
+            "single_exon_transcript": 2271,
+            "avg_exon_length": 500.52,
+            "avg_protein_length": 495.78,
+            "functional": {
+                "go_terms": 0,
+                "interproscan": 8199,
+                "eggnog": 0,
+                "pfam": 7086,
+                "cazyme": 388,
+                "merops": 349,
+                "busco": 1286,
+                "secretion": 0
+            },
+            "pct_exon_overlap_protein_evidence": 3.15
+        }
+    }
+}

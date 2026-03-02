@@ -1,0 +1,23 @@
+#Name	Passed Description
+AA14A	AA14 lytic polysaccharide monooxygenase A
+AA14B	AA14 lytic polysaccharide monooxygenase B
+ABF62A	Alpha-L-arabinofuranosidase A
+ABF62C	Alpha-L-arabinofuranosidase C
+BLYS4	Secreted LysM effector Blys4
+COT2	Glucan synthesis regulatory protein
+DMXR11	Dimeric xanthone biosynthesis cluster protein R11
+ERG3A	Delta(7)-sterol 5(6)-desaturase erg3a
+ERG5A	C-22 sterol desaturase erg5a
+ERG24B	Delta(14)-sterol reductase erg24b
+ERG25B	Methylsterol monooxygenase erg25B
+FGAQP1	Aquaporin-1
+FGAQP2	Probable aquaglyceroporin-2
+FGR3	Acetyltransferase fgr3
+MIP11	MST50-interacting protein 11
+MST7	Mitogen-activated protein kinase kinae mst7
+MST11	Mitogen-activated protein kinase kinae kinase mst11
+RAC1C	Rho-related protein rac1C
+RGE13	Hydroxymethylglutaryl-CoA synthase ERG13
+SIR5	NAD-dependent protein deacylase sir5
+TATC6	Terpene cyclase 6
+XYL43B	Xylosidase/arabinosidase 43B
