@@ -12,3 +12,6 @@ busco_downloads/**
 .temp_dorado_model*/** 
 dorado_model/*
 dorado_model
+# migration backups
+workflow/rules.backup.*/
+migrate_rules.sh
