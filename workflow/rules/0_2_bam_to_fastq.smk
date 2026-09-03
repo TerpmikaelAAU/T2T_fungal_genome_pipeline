@@ -1,10 +1,8 @@
-configfile: "config/config.yaml"
-
 rule bam_to_fastq:
     input:
-        a = "data/dorado_basecall/{input}.bam"
+        a = get_bam
     output:
-        a = "data/samtools/Fastq/{input}.fastq"
+        a = temp("data/samtools/Fastq/{input}.fastq")
     threads:
         12
     resources:

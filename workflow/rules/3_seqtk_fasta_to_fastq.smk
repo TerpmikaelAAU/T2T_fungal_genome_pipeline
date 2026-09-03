@@ -1,10 +1,8 @@
-configfile: "config/config.yaml"
-
 rule seqtk_fasta_to_fastq:
     input:
-        a = rules.dorado.output.a
+        a = "data/dorado/{input}.fasta"
     output:
-        a = "data/seqtk/fasta_to_fastq/{input}.fastq"
+        a = temp("data/seqtk/fasta_to_fastq/{input}.fastq")
     threads:
         10
     resources:
@@ -16,27 +14,3 @@ rule seqtk_fasta_to_fastq:
         """
         seqtk seq -F '#' {input.a} > {output.a}
         """
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

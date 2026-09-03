@@ -1,8 +1,6 @@
-configfile: "config/config.yaml"
-
 rule contig_count:
     input:
-        fasta_files = expand("data/hifiasm/{{input}}_{length}/{{input}}_{length}.fa", length=config["length"], input=config["input"])
+        fasta_files = expand("data/hifiasm/{{input}}_{length}/{{input}}_{length}.fa", length=config["length"])
     output:
         a = "data/contig/{input}_lowest_contig_file.fa"
     threads:

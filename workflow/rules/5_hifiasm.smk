@@ -1,11 +1,9 @@
-configfile: "config/config.yaml"
-
 rule hifiasm:
     input:
         a = rules.seqkit_10_50.output.a,
         b = rules.chopper_ultralong.output.a,
     output:
-        a = "data/hifiasm/{input}_{length}/prefix.p_ctg.gfa",
+        a = temp("data/hifiasm/{input}_{length}/prefix.p_ctg.gfa"),
         b = ["data/hifiasm/{input}_{length}/prefix.a_ctg.gfa",
         "data/hifiasm/{input}_{length}/prefix.a_ctg.lowQ.bed",
         "data/hifiasm/{input}_{length}/prefix.a_ctg.noseq.gfa",
@@ -22,8 +20,8 @@ rule hifiasm:
     threads:
         12
     resources:
-        mem_mb=resources["hifiasm"]["mem_mb"],
-        runtime=resources["hifiasm"]["runtime"],
+        mem_mb=scaled_mem(6.0, 64000),
+        runtime=scaled_time(0.3, 720),
     conda:
         "../envs/hifiasm.yml"
         

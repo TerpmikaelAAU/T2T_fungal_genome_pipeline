@@ -1,19 +1,16 @@
-configfile: "config/config.yaml"
-
-
 rule porechop_abi:
     input:
-        a = rules.bam_to_fastq.output.a
+        a = get_raw_fastq
     output:
-        a = "data/porechopped/{input}.fastq"
+        a = temp("data/porechopped/{input}.fastq")
     threads:
         75
     resources:
-        mem_mb=resources["porechop_api"]["mem_mb"],
-        runtime=resources["porechop_api"]["runtime"]
+        mem_mb=scaled_mem(1.5, 32000),
+        runtime=scaled_time(0.05, 600),
     conda:
         "../envs/porechop_abi.yml"
     shell:
         """
-        porechop_abi --ab_initio -i {input} -o {output.a}
+        porechop_abi --ab_initio -i {input.a} -o {output.a}
         """

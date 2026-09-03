@@ -1,16 +1,53 @@
+# ============================================================================
+#  Per-sample configuration
+# ============================================================================
+#   type: pod5   -> full pipeline: basecall -> correct -> assemble -> polish
+#   type: bam    -> skips basecalling; still polished (polishing needs a BAM)
+#   type: fastq  -> skips basecalling AND polishing; ends at the raw assembly
+#
+# 'path' must be an ABSOLUTE path.
+#   pod5  -> a DIRECTORY of .pod5 files
+#   bam   -> a single basecalled .bam file
+#   fastq -> a single .fastq or .fastq.gz file
+#
+# Optional per-sample keys:
+#   busco_lineage : BUSCO dataset          (default: fungi_odb10)
+#   organelle     : GetOrganelle database, or 'none' to skip (default: fungus_mt)
+#   subsample     : coverage cap; omit to use ALL reads (recommended)
+# ---------------------------------------------------------------------------
+samples:
 
-#Input the names of your samples ie. "barcode1"
-#input: [barcode10]
-input: [barcode10, barcode11, barcode12, barcode14, barcode15, barcode16, barcode17]
-#pod5pass folder
-pod5_folder: "Absolute_Path_pod5_pass"
+  p_infestans_88069:
+    type: fastq
+    path: /home/bio.aau.dk/zl01hh/P_infestans_88069_Nanopore_Raw/P_infestans_88069.fastq.gz
+    busco_lineage: stramenopiles_odb10
+    organelle: none
+  
+  #p_infestans_88069:
+  #type: pod5
+  #path: /ABSOLUTE/PATH/TO/pod5_pass/barcode10
+  #busco_lineage: stramenopiles_odb10
+  #organelle: none
 
-#absoulte path to dorado
-dorado: /absoulte/path/to/dorado
+  #barcode11:
+  #  type: bam
+  #  path: /ABSOLUTE/PATH/TO/barcode11.bam
+  #  busco_lineage: fungi_odb10
+  #  subsample: {coverage: 100, genome_size: 40mb} 
 
+  #barcode12:
+  #  type: fastq
+  #  path: /ABSOLUTE/PATH/TO/barcode12.fastq.gz
+  #  busco_lineage: fungi_odb10
 
-#wildcard for subsampling, removing reads below x kb, this is highly dependent of input data, but for the most part one of these assemblies will resolve into T2T
+# ============================================================================
+dorado: /ABSOLUTE/PATH/TO/dorado/bin/dorado
+
+dorado_correct:
+  # Smaller index_size = less RAM per block = more blocks. 4G is a safe start.
+  index_size: "4G"
+  # Overlap (--to-paf) always runs on CPU on the big-memory nodes.
+  # Set to "cpu" to keep inference off the GPU as well.
+  inference_device: "cuda:all"
+
 length: [10000, 15000, 20000, 25000, 30000]
-
-
-

@@ -19,11 +19,15 @@ default-resources:
 # bio-node10 (the only GPU node) has 64 threads; nothing can use more.
 max-threads: 64
 
-jobs: 50
+# HARD CAP on how many jobs can be in SLURM at once. Even if a checkpoint
+# expands into hundreds of blocks, never more than this many are submitted.
+jobs: 30
 local-cores: 1
 latency-wait: 120
-restart-times: 0
-max-jobs-per-second: 10
+retries: 3
+# Submission RATE limit -- protects the scheduler from a burst.
+max-jobs-per-second: 5
+max-status-checks-per-second: 5
 keep-going: True
 rerun-incomplete: True
 printshellcmds: False

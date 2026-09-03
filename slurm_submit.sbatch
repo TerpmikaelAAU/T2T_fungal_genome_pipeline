@@ -16,9 +16,6 @@ conda activate snakemake_run_v9
 
 # Snakemake itself needs almost nothing: it submits each rule as its own
 # SLURM job via the executor plugin. 1 CPU + 1G is plenty.
-#
-# NOTE: --nodes/--ntasks are gone; they are meaningless for the launcher job.
-# NOTE: environments are now created with --conda-create-envs-only below.
 
 ### FIRST RUN ONLY: build all conda envs, then comment this out ###
 snakemake --profile profile --conda-create-envs-only

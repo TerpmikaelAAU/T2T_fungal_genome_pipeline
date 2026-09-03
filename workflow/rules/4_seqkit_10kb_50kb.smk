@@ -1,10 +1,8 @@
-configfile: "config/config.yaml"
-
 rule seqkit_10_50:
     input:
         a = rules.seqtk_fasta_to_fastq.output.a
     output:
-        a = "data/seqkit/dorado/{input}_{length}.fastq"
+        a = temp("data/seqkit/dorado/{input}_{length}.fastq")
         
     threads:
         12
@@ -18,30 +16,3 @@ rule seqkit_10_50:
         seqkit seq -m {wildcards.length} {input.a} > {output.a}
   
         """
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

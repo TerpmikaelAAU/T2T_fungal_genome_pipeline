@@ -1,9 +1,8 @@
-configfile: "config/config.yaml"
 rule fga:
     input:
         a = rules.hifiasm.output.a,
     output: 
-        a =  "data/hifiasm/{input}_{length}/{input}_{length}.fa"
+        a =  temp("data/hifiasm/{input}_{length}/{input}_{length}.fa")
     threads:
         12
     resources:
