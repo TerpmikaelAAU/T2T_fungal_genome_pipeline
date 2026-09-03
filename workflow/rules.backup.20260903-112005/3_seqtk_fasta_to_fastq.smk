@@ -9,7 +9,7 @@ rule seqtk_fasta_to_fastq:
         10
     resources:
         mem_mb=resources["seqkit"]["mem_mb"],
-        runtime=resources["seqkit"]["runtime"]
+        runtime=resources["seqkit"]["time"]
     conda:
         "../envs/seqtk.yml"
     shell:

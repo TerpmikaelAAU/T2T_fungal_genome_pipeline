@@ -1,26 +1,32 @@
 import os
 from snakemake.utils import min_version
-
+ 
 min_version("7.18.2")
-
+ 
 configfile: "config/config.yaml"
-
-# Define resources
+ 
+# Resources per tool.
+# runtime is an INTEGER NUMBER OF MINUTES (Snakemake >=8 requirement).
+# gres is passed straight through to `sbatch --gres=...` by the SLURM plugin.
+# Partitions are NOT set: BioCloud assigns them automatically.
 resources = {
-    "hifiasm": {"mem_mb": 30000, "time": "04:00:00"},
-    "flye": {"mem_mb": 30000, "time": "04:00:00"},
-    "busco": {"mem_mb": 10000, "time": "08:00:00"},
-    "rasusa": {"mem_mb": 5000, "time": "00:40:00"},
-    "chopper": {"mem_mb": 5000, "time": "00:40:00"},
-    "fga": {"mem_mb": 5000, "time": "01:00:00"},
-    "porechop_api": {"mem_mb": 100000, "time": "10:00:00"},
-    "dorado": {"mem_mb": 200000 , "time": "2-00:00:00"},
-    "dorado_basecall": {"mem_mb": 100000,"time": "7-00:00:00"},
-    "seqkit": {"mem_mb": 10000, "time": "01:00:00"},
-    "rasusa": {"mem_mb": 5000, "time": "00:40:00"},
-    "dorado_align": {"mem_mb": 75000, "time": "12:00:00"},
+    "hifiasm":         {"mem_mb": 30000,  "runtime": 240},
+    "flye":            {"mem_mb": 30000,  "runtime": 240},
+    "busco":           {"mem_mb": 10000,  "runtime": 480},
+    "rasusa":          {"mem_mb": 5000,   "runtime": 40},
+    "chopper":         {"mem_mb": 5000,   "runtime": 40},
+    "fga":             {"mem_mb": 5000,   "runtime": 60},
+    "porechop_api":    {"mem_mb": 100000, "runtime": 600},
+    "dorado":          {"mem_mb": 200000, "runtime": 2880},
+    "dorado_basecall": {"mem_mb": 100000, "runtime": 10080},
+    "seqkit":          {"mem_mb": 10000,  "runtime": 60},
+    "dorado_align":    {"mem_mb": 75000,  "runtime": 720},
+    "dorado_polish":   {"mem_mb": 100000, "runtime": 600},
 }
-
+ 
+# GPU request string for BioCloud's single A10 node (bio-node10).
+GPU_GRES = "gpu:a10:1"
+ 
 include: "workflow/rules/0_1_basecall.smk"
 include: "workflow/rules/0_2_bam_to_fastq.smk"
 include: "workflow/rules/1_porechop_api.smk"

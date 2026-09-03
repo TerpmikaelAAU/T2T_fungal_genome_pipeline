@@ -11,7 +11,8 @@ rule busco:
         12
     resources:
         mem_mb=resources["busco"]["mem_mb"],
-        runtime=resources["busco"]["runtime"],
+        runtime=resources["busco"]["time"],
+        partition="general"
         #
     conda:
        "../envs/BUSCO.yml"

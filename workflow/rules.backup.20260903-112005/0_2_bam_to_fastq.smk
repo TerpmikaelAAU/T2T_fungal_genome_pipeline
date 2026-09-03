@@ -9,7 +9,7 @@ rule bam_to_fastq:
         12
     resources:
         mem_mb=resources["chopper"]["mem_mb"],
-        runtime=resources["chopper"]["runtime"]
+        runtime=resources["chopper"]["time"]
     conda:
         "../envs/samtools.yml"
     shell:

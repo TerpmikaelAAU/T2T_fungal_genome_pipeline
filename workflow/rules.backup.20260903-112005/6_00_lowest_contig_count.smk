@@ -9,7 +9,8 @@ rule contig_count:
         5
     resources:
         mem_mb=resources["fga"]["mem_mb"],
-        runtime=resources["fga"]["runtime"],
+        runtime=resources["fga"]["time"],
+        partition="shared"
     shell:
       """
         mkdir -p $(dirname {output})

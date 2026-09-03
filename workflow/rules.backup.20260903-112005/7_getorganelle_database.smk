@@ -7,7 +7,8 @@ rule getorganelle_database:
         12
     resources:
         mem_mb=resources["busco"]["mem_mb"],
-        runtime=resources["busco"]["runtime"],
+        runtime=resources["busco"]["time"],
+        partition="shared"
     shell:
         """
         curl -L https://github.com/Kinggerm/GetOrganelleDB/releases/download/0.0.1/v0.0.1.tar.gz | tar zx

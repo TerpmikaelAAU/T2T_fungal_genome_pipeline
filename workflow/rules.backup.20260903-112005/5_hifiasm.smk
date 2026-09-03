@@ -23,7 +23,8 @@ rule hifiasm:
         12
     resources:
         mem_mb=resources["hifiasm"]["mem_mb"],
-        runtime=resources["hifiasm"]["runtime"],
+        runtime=resources["hifiasm"]["time"],
+        partition="general"
     conda:
         "../envs/hifiasm.yml"
         

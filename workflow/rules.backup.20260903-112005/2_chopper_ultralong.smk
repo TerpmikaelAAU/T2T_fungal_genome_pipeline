@@ -9,7 +9,7 @@ rule chopper_ultralong:
         12
     resources:
         mem_mb=resources["chopper"]["mem_mb"],
-        runtime=resources["chopper"]["runtime"]
+        runtime=resources["chopper"]["time"]
     conda:
         "../envs/chopper.yml"
     shell:

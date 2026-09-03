@@ -1,32 +1,31 @@
 #!/usr/bin/bash -l
 #SBATCH --job-name=snake_assembly_sub
 #SBATCH --output=snake_log/job_%j_%x.out
-#SBATCH --nodes=1
-#SBATCH --ntasks=1
-#SBATCH --ntasks-per-node=1
-#SBATCH --partition=shared
-#SBATCH --time=1-00:00:00
-#SBATCH --cpus-per-task=4
-#SBATCH --mem=4G
-#SBATCH --mail-type=END,FAIL
+#SBATCH --cpus-per-task=1
+#SBATCH --mem=1G
+#SBATCH --time=7-00:00:00
+#SBATCH --mail-type=END,FAIL,TIME_LIMIT_90
 #SBATCH --mail-user=email@addrese.com
 
-# Exit on first error and if any variables are unset
-set -eu
-# Activate conda environment with only snakemake
-conda activate snakemake_run
-###First time running the workflow###
-snakemake --profile profile -s Snakefile --conda-frontend conda --use-conda --conda-create-envs-only
-##After you run the above line to create all the envs, comment the above line, uncomment the line below #Main workflow. and change time=7-00:00:00, cpus-per-task=1, --mem=1G
+# Exit on first error, unset variable, or failed pipe
+set -euo pipefail
 
-# Start workflow using resources defined in the profile. Snakemake itself 
-# requires nothing, 1CPU + 1G mem is enough (not for making conda envs)
+mkdir -p snake_log
 
+conda activate snakemake_run_v9
 
-# Main workflow
-#snakemake --profile profile -s Snakefile --conda-frontend conda --use-conda
-#If the workflow crashes unlock with "--unlock", add to the line ^. Run it, then remove the unlock flag and rerun. 
+# Snakemake itself needs almost nothing: it submits each rule as its own
+# SLURM job via the executor plugin. 1 CPU + 1G is plenty.
+#
+# NOTE: --nodes/--ntasks are gone; they are meaningless for the launcher job.
+# NOTE: environments are now created with --conda-create-envs-only below.
 
+### FIRST RUN ONLY: build all conda envs, then comment this out ###
+snakemake --profile profile --conda-create-envs-only
 
+### MAIN WORKFLOW: uncomment after the envs exist ###
+#snakemake --profile profile
 
-
+# If the workflow crashed and the directory is locked, run once with --unlock,
+# then remove the flag and rerun:
+#snakemake --profile profile --unlock

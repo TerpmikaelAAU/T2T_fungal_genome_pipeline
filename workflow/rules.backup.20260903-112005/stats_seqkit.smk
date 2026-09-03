@@ -9,7 +9,7 @@ rule seqkit_raw:
         10
     resources:
         mem_mb=resources["seqkit"]["mem_mb"],
-        runtime=resources["seqkit"]["runtime"],
+        runtime=resources["seqkit"]["time"],
     conda:
        "seqkit.yml"
     shell:
@@ -26,7 +26,7 @@ rule seqkit_porechopped:
         10
     resources:
         mem_mb=resources["seqkit"]["mem_mb"],
-        runtime=resources["seqkit"]["runtime"],
+        runtime=resources["seqkit"]["time"],
     conda:
        "seqkit.yml"
     shell:
@@ -43,7 +43,7 @@ rule seqkit_chopper_pre_dorado:
         10
     resources:
         mem_mb=resources["seqkit"]["mem_mb"],
-        runtime=resources["seqkit"]["runtime"],
+        runtime=resources["seqkit"]["time"],
     conda:
        "seqkit.yml"
     shell:
@@ -60,7 +60,7 @@ rule seqkit_chopper_pre_flye:
         10
     resources:
         mem_mb=resources["seqkit"]["mem_mb"],
-        runtime=resources["seqkit"]["runtime"],
+        runtime=resources["seqkit"]["time"],
     conda:
        "seqkit.yml"
     shell:
@@ -77,7 +77,7 @@ rule seqkit_chopper_ultralong:
         10
     resources:
         mem_mb=resources["seqkit"]["mem_mb"],
-        runtime=resources["seqkit"]["runtime"],
+        runtime=resources["seqkit"]["time"],
     conda:
        "seqkit.yml"
     shell:
@@ -94,7 +94,7 @@ rule seqkit_flye_assembly:
         10
     resources:
         mem_mb=resources["seqkit"]["mem_mb"],
-        runtime=resources["seqkit"]["runtime"],
+        runtime=resources["seqkit"]["time"],
     conda:
        "seqkit.yml"
     shell:
@@ -111,7 +111,7 @@ rule seqkit_reads_after_correction:
         10
     resources:
         mem_mb=resources["seqkit"]["mem_mb"],
-        runtime=resources["seqkit"]["runtime"],
+        runtime=resources["seqkit"]["time"],
     conda:
        "seqkit.yml"
     shell:
@@ -128,7 +128,7 @@ rule seqkit_reads_chopper_for_hifiasm:
         10
     resources:
         mem_mb=resources["seqkit"]["mem_mb"],
-        runtime=resources["seqkit"]["runtime"],
+        runtime=resources["seqkit"]["time"],
     conda:
        "seqkit.yml"
     shell:

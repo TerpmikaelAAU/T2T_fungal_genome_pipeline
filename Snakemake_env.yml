@@ -1,11 +1,10 @@
 name: snakemake_run
 channels:
-  - bioconda
   - conda-forge
+  - bioconda
 dependencies:
-  - snakemake=7.18.2
-  - snakefmt=0.10.2
-  - dropbox>=7.2.1
-  - python=3.11
-  #- graphviz=9.0.0
-  - snakemake-executor-plugin-cluster-generic
+  - python=3.12
+  - snakemake=9.26.1
+  - snakemake-executor-plugin-slurm=2.8.0
+  - snakefmt=0.11.0
+  - graphviz
