@@ -1,5 +1,3 @@
-configfile: "config/config.yaml"
-
 rule getorganelle_database:
     output:
         dir = directory("0.0.1"),

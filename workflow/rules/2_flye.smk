@@ -1,5 +1,3 @@
-configfile: "config/config.yaml"
-
 rule flye:
     input:
         a = rules.chopper_flye.output.a

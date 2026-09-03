@@ -1,12 +1,11 @@
-configfile: "config/config.yaml"
-
 rule busco:
     input:
-        a = rules.dorado_polish.output.a
-        #Use the line below instead if you do not do dorado polishing
-        #a = "data/contig/{input}_lowest_contig_file.fa"
+        a = lambda w: (f"data/dorado_polish/{w.input}.fasta" if has_bam(w.input)
+             else f"data/contig/{w.input}_lowest_contig_file.fa")
     output:
         dir = directory("data/busco/{input}/BUSCO"),
+    params:
+        lineage = lambda w: busco_lineage(w.input)
     threads:
         12
     resources:
@@ -18,7 +17,7 @@ rule busco:
     shell:
         """
         
-        busco -i {input.a} -o {output.dir} -l fungi_odb10 -m geno -f -c $(nproc) --metaeuk --tar
+        busco -i {input.a} -o {output.dir} -l {params.lineage} -m geno -f -c $(nproc) --metaeuk --tar
         
         
         """

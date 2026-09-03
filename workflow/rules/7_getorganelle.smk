@@ -1,10 +1,10 @@
-configfile: "config/config.yaml"
-
 rule getorganelle:
     input:
         a = rules.flye.output.d
     output:
         dir = directory("data/getorganelle/{input}/Mitochondria"),
+    params:
+        db = lambda w: organelle_db(w.input)
     threads:
         12
     resources:
@@ -14,6 +14,6 @@ rule getorganelle:
        "../envs/getorganelle.yml"
     shell:
         """
-        get_organelle_from_assembly.py -F fungus_mt -g {input.a} --config-dir "0.0.1" -o {output.dir} -t $(nproc) --overwrite
+        get_organelle_from_assembly.py -F {params.db} -g {input.a} --config-dir "0.0.1" -o {output.dir} -t $(nproc) --overwrite
 
         """

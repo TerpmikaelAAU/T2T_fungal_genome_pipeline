@@ -1,14 +1,12 @@
-configfile: "config/config.yaml"
-
 rule chopper_dorado:
     input:
         a = rules.porechop_abi.output.a
     output:
-        a = "data/chopper/L10kbQ10/{input}.fastq"
+        a = temp("data/chopper/L10kbQ10/{input}.fastq")
     threads:
         12
     resources:
-        mem_mb=resources["chopper"]["mem_mb"],
+        mem_mb=scaled_mem(0.15, 8000),
         runtime=resources["chopper"]["runtime"]
     conda:
         "../envs/chopper.yml"

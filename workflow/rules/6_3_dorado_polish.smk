@@ -1,4 +1,3 @@
-configfile: "config/config.yaml"
 rule dorado_polish:
     input:
         a = rules.dorado_align.output.a,
@@ -16,4 +15,3 @@ rule dorado_polish:
         "{config[dorado]}" polish --batchsize 8 --device cuda:all {input.a} {input.b} > {output.a}
         
         """
-

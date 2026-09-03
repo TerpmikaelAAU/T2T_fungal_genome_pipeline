@@ -1,14 +1,13 @@
-configfile: "config/config.yaml"
 rule dorado_align:
     input:
         a = rules.contig_count.output.a,
-        b = rules.dorado_basecall.output.a
+        b = get_bam
     output: 
-        a = "data/dorado_align/{input}.bam"
+        a = temp("data/dorado_align/{input}.bam")
     threads:
         50
     resources:
-        mem_mb=resources["dorado_align"]["mem_mb"],
+        mem_mb=scaled_mem(1.0, 64000),
         runtime=resources["dorado_align"]["runtime"],
     conda:
         "../envs/samtools.yml"
