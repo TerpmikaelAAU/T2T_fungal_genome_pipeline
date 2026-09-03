@@ -10,9 +10,9 @@ rule seqkit_10_50:
         12
     resources:
         mem_mb=resources["chopper"]["mem_mb"],
-        runtime=resources["chopper"]["time"]
+        runtime=resources["chopper"]["runtime"]
     conda:
-        "../envs/seqkit"
+        "../envs/seqkit.yml"
     shell:
         """
         seqkit seq -m {wildcards.length} {input.a} > {output.a}

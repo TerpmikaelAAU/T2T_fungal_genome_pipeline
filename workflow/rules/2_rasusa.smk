@@ -9,7 +9,7 @@ rule rasusa:
         12  
     resources:
         mem_mb=resources["rasusa"]["mem_mb"],
-        runtime=resources["rasusa"]["time"]
+        runtime=resources["rasusa"]["runtime"]
     conda:
         "../envs/rasusa.yml"
     shell:

@@ -8,10 +8,9 @@ rule dorado_polish:
     threads:
         16
     resources:
-        mem_mb=resources["porechop_api"]["mem_mb"],
-        runtime=resources["porechop_api"]["time"],
-        partition="gpu",
-        gpus=1,
+        mem_mb=resources["dorado_polish"]["mem_mb"],
+        runtime=resources["dorado_polish"]["runtime"],
+        gres=GPU_GRES,
     shell:
         """
         "{config[dorado]}" polish --batchsize 8 --device cuda:all {input.a} {input.b} > {output.a}

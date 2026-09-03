@@ -12,8 +12,7 @@ rule flye:
         12
     resources:
         mem_mb=resources["flye"]["mem_mb"],
-        runtime=resources["flye"]["time"],
-        partition="general"
+        runtime=resources["flye"]["runtime"],
     conda:
         "../envs/Flye.yml"
     shell:

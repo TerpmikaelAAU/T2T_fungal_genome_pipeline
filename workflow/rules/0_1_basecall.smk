@@ -10,9 +10,8 @@ rule dorado_basecall:
         16
     resources:
         mem_mb=resources["dorado_basecall"]["mem_mb"],
-        runtime=resources["dorado_basecall"]["time"],
-        partition="gpu",
-        gpus=1,
+        runtime=resources["dorado_basecall"]["runtime"],
+        gres=GPU_GRES,
     shell:
         """
         "{config[dorado]}" basecaller sup --emit-moves --device cuda:all {input.a} > {output.a}

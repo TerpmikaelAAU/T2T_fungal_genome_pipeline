@@ -9,8 +9,7 @@ rule getorganelle:
         12
     resources:
         mem_mb=resources["hifiasm"]["mem_mb"],
-        runtime=resources["busco"]["time"],
-        partition="shared"
+        runtime=resources["busco"]["runtime"],
     conda:
        "../envs/getorganelle.yml"
     shell:

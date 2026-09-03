@@ -9,8 +9,7 @@ rule dorado_align:
         50
     resources:
         mem_mb=resources["dorado_align"]["mem_mb"],
-        runtime=resources["dorado_align"]["time"],
-        partition="shared"
+        runtime=resources["dorado_align"]["runtime"],
     conda:
         "../envs/samtools.yml"
     shell:

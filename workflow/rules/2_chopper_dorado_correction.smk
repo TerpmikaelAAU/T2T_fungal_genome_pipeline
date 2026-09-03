@@ -9,7 +9,7 @@ rule chopper_dorado:
         12
     resources:
         mem_mb=resources["chopper"]["mem_mb"],
-        runtime=resources["chopper"]["time"]
+        runtime=resources["chopper"]["runtime"]
     conda:
         "../envs/chopper.yml"
     shell:
