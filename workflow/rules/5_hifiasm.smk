@@ -3,7 +3,6 @@ rule hifiasm:
         a = rules.seqkit_10_50.output.a,
         b = rules.chopper_ultralong.output.a,
     output:
-    output:
         a = temp("data/hifiasm/{input}_{length}/prefix.p_ctg.gfa"),
         b = temp(["data/hifiasm/{input}_{length}/prefix.a_ctg.gfa",
         "data/hifiasm/{input}_{length}/prefix.a_ctg.lowQ.bed",
