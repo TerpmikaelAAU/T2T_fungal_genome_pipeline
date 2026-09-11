@@ -24,7 +24,11 @@ max-threads: 64
 jobs: 30
 local-cores: 1
 latency-wait: 120
-retries: 3
+# Snakemake retries ANY failure, doubling mem_mb each time via scaled_mem().
+# That's right for a real OOM kill, but a SIGILL on empty input burned
+# 64->128->256->512 GB across five assemblies before this was understood
+# (see Handoff.md §5.3) -- each attempt died in <10s using 155 MB.
+retries: 1
 # Submission RATE limit -- protects the scheduler from a burst.
 max-jobs-per-second: 5
 max-status-checks-per-second: 5
