@@ -3,9 +3,9 @@
 # dorado correct handles memory via blocks (see 3_dorado_correct.smk).
 rule rasusa:
     input:
-        a = rules.chopper_dorado.output.a,
+        a = "data/chopper/{input}_q{minq}_l{minlen}.fastq",
     output:
-        a = temp("data/rasusa/Coverage/{input}.fastq")
+        a = temp("data/rasusa/Coverage/{input}_q{minq}_l{minlen}.fastq")
     params:
         cov = lambda w: SAMPLES[w.input]["subsample"]["coverage"],
         gsize = lambda w: SAMPLES[w.input]["subsample"]["genome_size"],
@@ -17,7 +17,7 @@ rule rasusa:
     conda:
         "../envs/rasusa.yml"
     log:
-        "logs/rasusa/{input}.log"
+        "logs/rasusa/{input}_q{minq}_l{minlen}.log"
     shell:
         """
         rasusa reads --coverage {params.cov} --genome-size {params.gsize} \

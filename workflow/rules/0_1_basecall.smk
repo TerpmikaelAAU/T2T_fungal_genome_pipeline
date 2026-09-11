@@ -1,6 +1,7 @@
 # Only runs for samples with type: pod5.
 rule dorado_basecall:
     input:
+        dorado = dorado_bin,
         a = lambda w: SAMPLES[w.input]["path"]
     output:
         a = protected("data/dorado_basecall/{input}.bam")
@@ -14,5 +15,5 @@ rule dorado_basecall:
         "logs/dorado_basecall/{input}.log"
     shell:
         """
-        "{config[dorado]}" basecaller sup --emit-moves --device cuda:all {input.a} > {output.a} 2> {log}
+        "{input.dorado}" basecaller sup --emit-moves --device cuda:all {input.a} > {output.a} 2> {log}
         """

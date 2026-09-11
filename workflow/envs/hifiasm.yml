@@ -1,6 +1,6 @@
 name: hifiasm
 channels:
-  - bioconda
   - conda-forge
+  - bioconda
 dependencies:
-  - hifiasm=0.24.0
+  - hifiasm=0.25.0

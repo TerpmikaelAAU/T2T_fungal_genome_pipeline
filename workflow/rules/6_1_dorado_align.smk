@@ -1,5 +1,6 @@
 rule dorado_align:
     input:
+        dorado = dorado_bin,
         a = rules.contig_count.output.a,
         b = get_bam
     output: 
@@ -13,7 +14,7 @@ rule dorado_align:
         "../envs/samtools.yml"
     shell:
         """
-        "{config[dorado]}" aligner {input.a} {input.b} | samtools sort --threads $(nproc) > {output.a}  
+        "{input.dorado}" aligner {input.a} {input.b} | samtools sort --threads $(nproc) > {output.a}  
         echo "align done!"
         samtools index {output.a}
 

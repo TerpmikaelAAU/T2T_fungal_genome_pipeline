@@ -36,17 +36,17 @@ def label(path):
     parent = os.path.basename(os.path.dirname(path))
     if "porechopped" in path:
         return "after adapter trimming"
-    if "L10kbQ10" in path:
-        return "after length/quality filter"
-    if "rasusa" in path:
-        return "after coverage subsampling"
-    if path.endswith(".fasta") and "dorado" in path:
-        return "after dorado correct"
     if "hifiasm" in path:
         return f"assembly {parent}"
     if "contig" in path:
         return "selected assembly"
-    return base
+    if "decompressed" in path or "samtools/Fastq" in path:
+        return "raw reads"
+    # Whatever the user pointed `samples: <name>: path:` at directly (a
+    # non-gz fastq, or a fastq.gz small enough that read_stage_files skipped
+    # the decompress-once rule for something else's sake -- see Snakefile
+    # get_raw_fastq()).
+    return "raw reads"
 
 
 def find_busco(busco_dir):
@@ -59,11 +59,17 @@ def find_busco(busco_dir):
 reads = read_tsv(snakemake.input.reads)
 asm = read_tsv(snakemake.input.asm)
 
-# --- corrected bases, for the coverage estimate ---------------------------
-corrected_bases = 0
+# --- raw bases, for the coverage estimate ----------------------------------
+# Filtering/correction now fork into a (min_q, min_len) grid (see
+# config.yaml `filter:`), so there is no longer a single corrected-reads
+# file to measure against -- this is coverage of the UNFILTERED input,
+# a much looser upper bound than the old corrected-bases estimate.
+raw_bases = 0
 for row in reads:
-    if "dorado" in row.get("file", "") and row.get("file", "").endswith(".fasta"):
-        corrected_bases = as_int(row.get("sum_len"))
+    f = row.get("file", "")
+    if "porechopped" not in f and "hifiasm" not in f and "contig" not in f:
+        raw_bases = as_int(row.get("sum_len"))
+        break
 
 # --- the selected assembly ------------------------------------------------
 best = None
@@ -72,7 +78,7 @@ for row in asm:
         best = row
 best_len = as_int(best.get("sum_len")) if best else 0
 
-coverage = (corrected_bases / best_len) if best_len else 0.0
+coverage = (raw_bases / best_len) if best_len else 0.0
 
 out = []
 out.append("=" * 70)
@@ -95,7 +101,7 @@ for row in reads:
 out.append("")
 
 out.append("-" * 70)
-out.append("ASSEMBLIES  (one per length cutoff; lowest contig count is selected)")
+out.append("ASSEMBLIES  (one per min_q/min_len grid cell; lowest contig count is selected)")
 out.append("-" * 70)
 out.append(f"{'candidate':<32}{'contigs':>12}{'total bp':>16}{'N50':>12}")
 for row in asm:
@@ -108,10 +114,10 @@ out.append("")
 out.append("-" * 70)
 out.append("COVERAGE")
 out.append("-" * 70)
-out.append(f"Corrected bases   : {corrected_bases:,}")
+out.append(f"Raw bases         : {raw_bases:,}")
 out.append(f"Assembly size     : {best_len:,}")
 out.append(f"Estimated coverage: {coverage:.1f}x")
-out.append("  (corrected bases / assembly size -- an estimate, not a mapped depth)")
+out.append("  (raw bases / assembly size -- an upper bound, not a mapped depth)")
 out.append("")
 
 out.append("-" * 70)
