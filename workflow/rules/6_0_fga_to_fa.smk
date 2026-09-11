@@ -1,8 +1,8 @@
 rule fga:
     input:
         a = rules.hifiasm.output.a,
-    output: 
-        a =  temp("data/hifiasm/{input}_{length}/{input}_{length}.fa")
+    output:
+        a =  temp("data/hifiasm/{input}_q{minq}_l{minlen}/{input}_q{minq}_l{minlen}.fa")
     threads:
         12
     resources:

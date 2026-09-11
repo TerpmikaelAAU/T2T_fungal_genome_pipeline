@@ -22,6 +22,15 @@ for _name, _s in SAMPLES.items():
     if not os.path.isabs(_s["path"]):
         raise WorkflowError(f"Sample '{_name}': 'path' must be absolute.")
 
+# minq/minlen identify one cell of the read-filtering grid (see config.yaml
+# `filter:`); block identifies one dorado-correct chunk. Constraining them to
+# digits keeps "{input}_q10_l5000" parsing as input="{input}", minq="10",
+# minlen="5000" instead of Snakemake trying every split.
+wildcard_constraints:
+    minq   = r"\d+",
+    minlen = r"\d+",
+    block  = r"\d+",
+
 def stype(name):
     return SAMPLES[name]["type"]
 
@@ -48,18 +57,79 @@ def get_bam(wildcards):
     return (f"data/dorado_basecall/{wildcards.input}.bam"
             if s["type"] == "pod5" else s["path"])
 
+def is_gz_fastq(name):
+    s = SAMPLES[name]
+    return s["type"] == "fastq" and s["path"].endswith(".gz")
+
 def get_raw_fastq(wildcards):
-    """FASTQ entering porechop: converted from BAM, or supplied by the user."""
-    s = SAMPLES[wildcards.input]
-    return (s["path"] if s["type"] == "fastq"
-            else f"data/samtools/Fastq/{wildcards.input}.fastq")
+    """Plain-text FASTQ entering porechop/chopper: converted from BAM, decompressed
+    once if the user's fastq.gz would otherwise be re-zcat'd by every grid point, or
+    the raw path as-is when it's already plain text."""
+    n = wildcards.input
+    s = SAMPLES[n]
+    if is_gz_fastq(n):
+        return f"data/decompressed/{n}.fastq"
+    return s["path"] if s["type"] == "fastq" else f"data/samtools/Fastq/{n}.fastq"
+
+def trim_adapters(name):
+    """Adapter trimming is opt-out per sample (default: on)."""
+    return SAMPLES[name].get("porechop", True)
+
+def get_trimmed_fastq(wildcards):
+    """Porechop output, or the raw reads when trimming is disabled."""
+    n = wildcards.input
+    return (f"data/porechopped/{n}.fastq" if trim_adapters(n)
+            else get_raw_fastq(wildcards))
 
 def get_correct_input(wildcards):
-    """Reads fed to dorado correct: coverage-capped only if the user asked."""
-    n = wildcards.input
-    return (f"data/rasusa/Coverage/{n}.fastq" if subsampled(n)
-            else f"data/chopper/L10kbQ10/{n}.fastq")
+    """Reads fed to dorado correct for one (sample, min_q, min_len) grid cell,
+    coverage-capped only if the user asked."""
+    n, q, l = wildcards.input, wildcards.minq, wildcards.minlen
+    return (f"data/rasusa/Coverage/{n}_q{q}_l{l}.fastq" if subsampled(n)
+            else f"data/chopper/{n}_q{q}_l{l}.fastq")
 
+def get_assembly_input(wildcards):
+    """FASTQ fed to hifiasm for one grid cell: corrected (then refastq'd) if
+    dorado_correct is enabled, else the chopper grid output directly --
+    hifiasm --ont does its own ONT-specific correction (see Handoff.md)."""
+    n = wildcards.input
+    if config["dorado_correct"]["enabled"]:
+        return f"data/seqtk/fasta_to_fastq/{n}_q{wildcards.minq}_l{wildcards.minlen}.fastq"
+    return get_correct_input(wildcards)
+
+def get_ultralong_input(wildcards):
+    """hifiasm's --ul input: a fixed cutoff independent of the filter grid,
+    reusing the same chopper rule. Only built when ultralong.enabled."""
+    u = config["ultralong"]
+    return f"data/chopper/{wildcards.input}_q{u['min_q']}_l{u['min_len']}.fastq"
+
+def hifiasm_inputs(wildcards):
+    d = {"a": get_assembly_input(wildcards)}
+    if config["ultralong"]["enabled"]:
+        d["b"] = get_ultralong_input(wildcards)
+    return d
+
+
+
+# ============================================================================
+#  Dorado binary
+# ============================================================================
+# config may give either:
+#   dorado: {version: "2.1.2"}          -> fetched by rule get_dorado
+#   dorado: {path: /abs/path/dorado}    -> use an existing install, no download
+# A bare string (the old format) is still accepted and treated as a path.
+_dorado_cfg = config["dorado"]
+if isinstance(_dorado_cfg, str):
+    DORADO_VERSION = None
+    DORADO_BIN = _dorado_cfg
+else:
+    DORADO_VERSION = _dorado_cfg.get("version", "2.1.2")
+    DORADO_BIN = (_dorado_cfg.get("path")
+                  or f"resources/dorado-{DORADO_VERSION}-linux-x64/bin/dorado")
+
+def dorado_bin(wildcards):
+    """Declared as a rule input so dorado jobs wait for the download."""
+    return DORADO_BIN
 
 # ============================================================================
 #  Adaptive resources
@@ -107,17 +177,17 @@ def scaled_time(factor, floor_min, cap_min=MAX_RUNTIME):
 #  Partitions are NOT set: BioCloud assigns them from the mem-per-CPU ratio.
 # ============================================================================
 resources = {
-    "hifiasm":          {"mem_mb": 30000,  "runtime": 240},
-    "flye":             {"mem_mb": 30000,  "runtime": 240},
-    "busco":            {"mem_mb": 10000,  "runtime": 480},
-    "rasusa":           {"mem_mb": 5000,   "runtime": 40},
-    "chopper":          {"mem_mb": 5000,   "runtime": 40},
-    "fga":              {"mem_mb": 5000,   "runtime": 60},
-    "porechop_api":     {"mem_mb": 100000, "runtime": 600},
-    "dorado_basecall":  {"mem_mb": 100000, "runtime": 10080},
-    "seqkit":           {"mem_mb": 10000,  "runtime": 60},
-    "dorado_align":     {"mem_mb": 75000,  "runtime": 720},
-    "dorado_polish":    {"mem_mb": 100000, "runtime": 600},
+    "hifiasm":          {"mem_mb": 30000,  "runtime": 440},
+    "flye":             {"mem_mb": 30000,  "runtime": 440},
+    "busco":            {"mem_mb": 10000,  "runtime": 880},
+    "rasusa":           {"mem_mb": 5000,   "runtime": 400},
+    "chopper":          {"mem_mb": 5000,   "runtime": 400},
+    "fga":              {"mem_mb": 5000,   "runtime": 600},
+    "porechop_api":     {"mem_mb": 100000, "runtime": 6000},
+    "dorado_basecall":  {"mem_mb": 100000, "runtime": 100800},
+    "seqkit":           {"mem_mb": 10000,  "runtime": 6000},
+    "dorado_align":     {"mem_mb": 75000,  "runtime": 72000},
+    "dorado_polish":    {"mem_mb": 100000, "runtime": 60000},
     # dorado correct, split into its three stages
     "correct_blocks":   {"mem_mb": 32000,  "runtime": 120},
     "correct_overlap":  {"mem_mb": 250000, "runtime": 720},
@@ -138,17 +208,17 @@ INFER_GRES = "" if INFER_DEVICE == "cpu" else GPU_GRES
 # submits more than `jobs:` at once, but this fails fast and loudly instead.
 MAX_BLOCKS = config["dorado_correct"].get("max_blocks", 200)
 
+include: "workflow/rules/0_0_get_dorado.smk"
 include: "workflow/rules/0_1_basecall.smk"
 include: "workflow/rules/0_2_bam_to_fastq.smk"
+include: "workflow/rules/0_3_decompress.smk"
 include: "workflow/rules/1_porechop_api.smk"
-include: "workflow/rules/2_chopper_dorado_correction.smk"
+include: "workflow/rules/2_chopper.smk"
 include: "workflow/rules/2_chopper_Flye_mitochondria.smk"
-include: "workflow/rules/2_chopper_ultralong.smk"
 include: "workflow/rules/2_flye.smk"
 include: "workflow/rules/2_rasusa.smk"
 include: "workflow/rules/3_dorado_correct.smk"
 include: "workflow/rules/3_seqtk_fasta_to_fastq.smk"
-include: "workflow/rules/4_seqkit_10kb_50kb.smk"
 include: "workflow/rules/5_hifiasm.smk"
 include: "workflow/rules/6_0_fga_to_fa.smk"
 include: "workflow/rules/6_00_lowest_contig_count.smk"

@@ -1,8 +1,8 @@
 rule seqtk_fasta_to_fastq:
     input:
-        a = "data/dorado/{input}.fasta"
+        a = "data/dorado/{input}_q{minq}_l{minlen}.fasta"
     output:
-        a = temp("data/seqtk/fasta_to_fastq/{input}.fastq")
+        a = temp("data/seqtk/fasta_to_fastq/{input}_q{minq}_l{minlen}.fastq")
     threads:
         10
     resources:

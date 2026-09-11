@@ -16,12 +16,13 @@
 #   subsample     : coverage cap; omit to use ALL reads (recommended)
 # ---------------------------------------------------------------------------
 samples:
-
   p_infestans_88069:
     type: fastq
     path: /home/bio.aau.dk/zl01hh/P_infestans_88069_Nanopore_Raw/P_infestans_88069.fastq.gz
-    busco_lineage: stramenopiles_odb10
+    busco_lineage: stramenopiles_odb12
     organelle: none
+    porechop: false
+
   
   #p_infestans_88069:
   #type: pod5
@@ -41,13 +42,40 @@ samples:
   #  busco_lineage: fungi_odb10
 
 # ============================================================================
-dorado: /ABSOLUTE/PATH/TO/dorado/bin/dorado
+dorado:
+  version: "2.1.2"
+  # path: /my/own/dorado/bin/dorado    # uncomment to skip the download
 
 dorado_correct:
+  # A real GPU run showed dorado correct discards ~85% of this dataset's
+  # reads (see Handoff.md); hifiasm --ont does its own ONT-specific
+  # correction instead. Off by default; flip on to experiment with it.
+  enabled: false
   # Smaller index_size = less RAM per block = more blocks. 4G is a safe start.
   index_size: "4G"
   # Overlap (--to-paf) always runs on CPU on the big-memory nodes.
   # Set to "cpu" to keep inference off the GPU as well.
   inference_device: "cuda:all"
 
-length: [10000, 15000, 20000, 25000, 30000]
+# hifiasm's --ul input. Off by default: this dataset has only ~3.5x coverage
+# above 20 kb, nowhere near enough for --ul to help (see Handoff.md).
+ultralong:
+  enabled: false
+  min_q: 10
+  min_len: 50000
+
+# Below this size hifiasm SIGILLs instead of failing informatively (an
+# empty/near-empty FASTQ trips an illegal instruction in its SIMD kernels).
+# Grid points this small are worthless anyway; guarded in the hifiasm rule.
+hifiasm_min_input_mb: 1
+
+# ============================================================================
+#  Read-filtering grid
+# ============================================================================
+# chopper applies BOTH cutoffs in one pass. Every (min_q, min_len) combination
+# below is assembled independently; contig_count picks the best result across
+# the whole grid. Start small to confirm the pipeline runs clean end to end
+# before opening it up -- a 4x4 grid means 16 hifiasm runs.
+filter:
+  min_q:   [10, 15]
+  min_len: [5000, 10000]

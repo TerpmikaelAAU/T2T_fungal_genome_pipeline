@@ -1,6 +1,6 @@
 rule chopper_flye:
     input:
-        a = rules.porechop_abi.output.a
+        a = get_trimmed_fastq
     output:
         a = temp("data/chopper/Flye/{input}.fastq")
     threads:
@@ -12,5 +12,6 @@ rule chopper_flye:
         "../envs/chopper.yml"
     shell:
         """
-        chopper -q 20 -l 20000 --threads $(nproc) < {input.a} > {output.a}
+        if [[ "{input.a}" == *.gz ]]; then zcat "{input.a}"; else cat "{input.a}"; fi \
+            | chopper -q 20 -l 20000 --threads {threads} > {output.a}
         """

@@ -6,13 +6,16 @@
 # read/assembly stats rules list files that are otherwise transient.
 
 def read_stage_files(wildcards):
-    """Every read file worth measuring, for this sample's entry point."""
+    """Every read file worth measuring, for this sample's entry point.
+
+    Filtering/correction now fork into a (min_q, min_len) grid (see
+    config.yaml `filter:`), so there is no longer a single "the chopped
+    file" or "the corrected file" -- those per-grid-cell stats live in
+    assembly_stats.tsv instead, alongside each candidate's contig stats."""
     n = wildcards.input
-    f = {"porechopped": f"data/porechopped/{n}.fastq",
-         "chopped_L10kbQ10": f"data/chopper/L10kbQ10/{n}.fastq",
-         "corrected": f"data/dorado/{n}.fasta"}
-    if subsampled(n):
-        f["subsampled"] = f"data/rasusa/Coverage/{n}.fastq"
+    f = {"raw": get_raw_fastq(wildcards)}
+    if trim_adapters(n):
+        f["porechopped"] = f"data/porechopped/{n}.fastq"
     return f
 
 
@@ -36,8 +39,9 @@ rule read_stats:
 
 rule assembly_stats:
     input:
-        candidates = expand("data/hifiasm/{{input}}_{length}/{{input}}_{length}.fa",
-                            length=config["length"]),
+        candidates = expand("data/hifiasm/{{input}}_q{minq}_l{minlen}/{{input}}_q{minq}_l{minlen}.fa",
+                            minq=config["filter"]["min_q"],
+                            minlen=config["filter"]["min_len"]),
         best = "data/contig/{input}_lowest_contig_file.fa",
     output:
         a = "results/{input}/assembly_stats.tsv"

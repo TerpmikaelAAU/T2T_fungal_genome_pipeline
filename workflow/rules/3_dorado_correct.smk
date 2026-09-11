@@ -15,19 +15,20 @@
 
 checkpoint correct_num_blocks:
     input:
+        dorado = dorado_bin,
         a = get_correct_input
     output:
-        a = "data/dorado/{input}/num_blocks.txt"
+        a = "data/dorado/{input}_q{minq}_l{minlen}/num_blocks.txt"
     threads:
         16
     resources:
         mem_mb = resources["correct_blocks"]["mem_mb"],
         runtime = resources["correct_blocks"]["runtime"],
     log:
-        "logs/correct_num_blocks/{input}.log"
+        "logs/correct_num_blocks/{input}_q{minq}_l{minlen}.log"
     shell:
         """
-        "{config[dorado]}" correct {input.a} \
+        "{input.dorado}" correct {input.a} \
             --index-size {config[dorado_correct][index_size]} \
             --compute-num-blocks > {output.a} 2> {log}
         """
@@ -35,20 +36,21 @@ checkpoint correct_num_blocks:
 
 rule correct_overlap:
     input:
+        dorado = dorado_bin,
         a  = get_correct_input,
-        nb = "data/dorado/{input}/num_blocks.txt",
+        nb = "data/dorado/{input}_q{minq}_l{minlen}/num_blocks.txt",
     output:
-        a = temp("data/dorado/{input}/block_{block}.paf")
+        a = temp("data/dorado/{input}_q{minq}_l{minlen}/block_{block}.paf")
     threads:
         64
     resources:
         mem_mb = scaled_mem(2.5, 64000),
         runtime = scaled_time(0.08, 720),
     log:
-        "logs/correct_overlap/{input}_block{block}.log"
+        "logs/correct_overlap/{input}_q{minq}_l{minlen}_block{block}.log"
     shell:
         """
-        "{config[dorado]}" correct {input.a} \
+        "{input.dorado}" correct {input.a} \
             --index-size {config[dorado_correct][index_size]} \
             --run-block-id {wildcards.block} \
             --to-paf \
@@ -59,10 +61,11 @@ rule correct_overlap:
 
 rule correct_inference:
     input:
+        dorado = dorado_bin,
         a   = get_correct_input,
-        paf = "data/dorado/{input}/block_{block}.paf",
+        paf = "data/dorado/{input}_q{minq}_l{minlen}/block_{block}.paf",
     output:
-        a = temp("data/dorado/{input}/block_{block}.fasta")
+        a = temp("data/dorado/{input}_q{minq}_l{minlen}/block_{block}.fasta")
     threads:
         16
     resources:
@@ -70,10 +73,10 @@ rule correct_inference:
         runtime = scaled_time(0.05, 480),
         **({"gres": INFER_GRES} if INFER_GRES else {}),
     log:
-        "logs/correct_inference/{input}_block{block}.log"
+        "logs/correct_inference/{input}_q{minq}_l{minlen}_block{block}.log"
     shell:
         """
-        "{config[dorado]}" correct {input.a} \
+        "{input.dorado}" correct {input.a} \
             --from-paf {input.paf} \
             --device {INFER_DEVICE} > {output.a} 2> {log}
         """
@@ -86,19 +89,21 @@ def correct_blocks(wildcards):
         n = int(fh.read().strip())
     if n > MAX_BLOCKS:
         raise WorkflowError(
-            f"dorado reported {n} blocks for '{wildcards.input}', above "
+            f"dorado reported {n} blocks for '{wildcards.input}' "
+            f"(q{wildcards.minq}_l{wildcards.minlen}), above "
             f"max_blocks={MAX_BLOCKS}. Increase dorado_correct.index_size "
             f"(fewer, larger blocks) or raise max_blocks if this is expected."
         )
-    return expand("data/dorado/{sample}/block_{block}.fasta",
-                  sample=wildcards.input, block=range(n))
+    return expand("data/dorado/{sample}_q{minq}_l{minlen}/block_{block}.fasta",
+                  sample=wildcards.input, minq=wildcards.minq,
+                  minlen=wildcards.minlen, block=range(n))
 
 
 rule correct_merge:
     input:
         correct_blocks
     output:
-        a = temp("data/dorado/{input}.fasta")
+        a = temp("data/dorado/{input}_q{minq}_l{minlen}.fasta")
     threads:
         2
     resources:

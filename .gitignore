@@ -15,3 +15,5 @@ dorado_model
 # migration backups
 workflow/rules.backup.*/
 migrate_rules.sh
+resources/
+Handoff.md

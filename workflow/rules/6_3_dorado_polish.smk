@@ -1,5 +1,6 @@
 rule dorado_polish:
     input:
+        dorado = dorado_bin,
         a = rules.dorado_align.output.a,
         b = rules.contig_count.output.a,
     output:
@@ -12,6 +13,6 @@ rule dorado_polish:
         gres=GPU_GRES,
     shell:
         """
-        "{config[dorado]}" polish --batchsize 8 --device cuda:all {input.a} {input.b} > {output.a}
+        "{input.dorado}" polish --batchsize 8 --device cuda:all {input.a} {input.b} > {output.a}
         
         """

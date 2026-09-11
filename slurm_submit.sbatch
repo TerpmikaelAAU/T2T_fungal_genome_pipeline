@@ -2,10 +2,10 @@
 #SBATCH --job-name=snake_assembly_sub
 #SBATCH --output=snake_log/job_%j_%x.out
 #SBATCH --cpus-per-task=1
-#SBATCH --mem=4G
+#SBATCH --mem=1G
 #SBATCH --time=7-00:00:00
 #SBATCH --mail-type=END,FAIL,TIME_LIMIT_90
-#SBATCH --mail-user=email@addrese.com
+#SBATCH --mail-user=mter@bio.aau.dk
 
 # Exit on first error, unset variable, or failed pipe
 set -euo pipefail
@@ -18,10 +18,10 @@ conda activate snakemake_run_v9
 # SLURM job via the executor plugin. 1 CPU + 1G is plenty.
 
 ### FIRST RUN ONLY: build all conda envs, then comment this out ###
-snakemake --profile profile --conda-create-envs-only
+#snakemake --profile profile --conda-create-envs-only
 
 ### MAIN WORKFLOW: uncomment after the envs exist ###
-#snakemake --profile profile
+snakemake --profile profile
 
 # If the workflow crashed and the directory is locked, run once with --unlock,
 # then remove the flag and rerun:
