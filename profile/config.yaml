@@ -34,8 +34,8 @@ latency-wait: 120
 # are identical -- after all ~10 envs here were bumped to current releases
 # in one pass, that alone made Snakemake want to rebuild every sample's
 # pipeline from scratch, including walking back to raw inputs that may no
-# longer exist (this happened for real: p_infestans_88069's raw .fastq.gz
-# was deleted once its results/ were final, and a later plain
+# longer exist (this happened for real: a sample's raw .fastq.gz was
+# deleted once its results/ were final, and a later plain
 # `snakemake --profile profile` crashed trying to walk back through
 # decompress_once to regenerate it) and hitting protected() outputs it then
 # can't overwrite. Tradeoff: a rule whose code or conda env genuinely
