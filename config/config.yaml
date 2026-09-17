@@ -1,16 +1,110 @@
+# ============================================================================
+#  Per-sample configuration
+# ============================================================================
+#   type: pod5   -> full pipeline: basecall -> correct -> assemble -> polish
+#   type: bam    -> skips basecalling; still polished (polishing needs a BAM)
+#   type: fastq  -> skips basecalling AND polishing; ends at the raw assembly
+#
+# 'path' must be an ABSOLUTE path.
+#   pod5  -> a DIRECTORY of .pod5 files
+#   bam   -> a single basecalled .bam file
+#   fastq -> a single .fastq or .fastq.gz file
+#
+# Optional per-sample keys:
+#   busco_lineage : BUSCO dataset          (default: fungi_odb12)
+#   organelle     : GetOrganelle database, or 'none' to skip (default: none)
+#   subsample     : coverage cap; omit to use ALL reads (recommended)
+#   porechop      : adapter trimming, true/false (default: true)
+#   filter        : per-sample (min_q, min_len) grid override -- use this
+#                   when one sample needs a different grid than the shared
+#                   default below (see the `filter:` section further down,
+#                   and README.md's "read-filtering grid" section for why
+#                   this matters)
+# ---------------------------------------------------------------------------
+samples:
+  sample_a:
+    type: fastq
+    path: /ABSOLUTE/PATH/TO/sample_a.fastq.gz
+    busco_lineage: fungi_odb12
+    organelle: none
+    porechop: false
+    # Example per-sample grid override: without this, sample_a would fall
+    # back to the GLOBAL `filter:` grid below and be built across every
+    # cell in it, not just this one.
+    filter:
+      min_q:   [20]
+      min_len: [1000]
 
-#Input the names of your samples ie. "barcode1"
-#input: [barcode10]
-input: [barcode10, barcode11, barcode12, barcode14, barcode15, barcode16, barcode17]
-#pod5pass folder
-pod5_folder: "Absolute_Path_pod5_pass"
+  sample_b:
+    type: fastq
+    path: /ABSOLUTE/PATH/TO/sample_b.fastq
+    porechop: false
+    # busco_lineage/organelle left at their defaults here.
 
-#absoulte path to dorado
-dorado: /absoulte/path/to/dorado
+  #sample_c:
+  #  type: pod5
+  #  path: /ABSOLUTE/PATH/TO/pod5_pass/sample_c
+  #  busco_lineage: fungi_odb12
+  #  organelle: none
 
+  #sample_d:
+  #  type: bam
+  #  path: /ABSOLUTE/PATH/TO/sample_d.bam
+  #  busco_lineage: fungi_odb12
+  #  subsample: {coverage: 100, genome_size: 40mb}
 
-#wildcard for subsampling, removing reads below x kb, this is highly dependent of input data, but for the most part one of these assemblies will resolve into T2T
-length: [10000, 15000, 20000, 25000, 30000]
+  #sample_e:
+  #  type: fastq
+  #  path: /ABSOLUTE/PATH/TO/sample_e.fastq.gz
+  #  busco_lineage: fungi_odb12
 
+# ============================================================================
+dorado:
+  version: "2.1.2"
+  # path: /my/own/dorado/bin/dorado    # uncomment to skip the download
 
+dorado_correct:
+  # hifiasm --ont does its own ONT-specific read correction, which this
+  # pipeline relies on by default. On at least one large, low-N50 (~5 kb)
+  # test dataset, a real GPU run of dorado correct discarded ~85% of reads
+  # (7.27 Gbp in -> 1.11 Gbp out), dropping ~30x raw coverage to ~4.6x
+  # effective coverage -- too little for hifiasm to assemble anything
+  # useful from. Flip this on only to experiment with dorado's correction
+  # instead; it may do better on data with a longer read N50.
+  enabled: false
+  # Smaller index_size = less RAM per block = more blocks. 4G is a safe start.
+  index_size: "4G"
+  # Overlap (--to-paf) always runs on CPU on the big-memory nodes.
+  # Set to "cpu" to keep inference off the GPU as well.
+  inference_device: "cuda:all"
 
+# hifiasm's --ul input: a second, fixed-cutoff read set (independent of the
+# filter grid above) fed to hifiasm alongside each grid cell's main input.
+# Off by default -- check per-sample whether there's enough coverage above
+# min_len to be worth it before enabling. On one large test dataset, a
+# retention check found only ~3.5x coverage above 20 kb, which argued
+# against --ul at that particular cutoff; revisit per-sample if an
+# --ul-assisted assembly doesn't actually improve on its non-ul equivalent.
+ultralong:
+  enabled: false
+  min_q: 10
+  min_len: 50000
+
+# Below this size hifiasm SIGILLs instead of failing informatively (an
+# empty/near-empty FASTQ trips an illegal instruction in its SIMD kernels).
+# Grid points this small are worthless anyway; guarded in the hifiasm rule.
+hifiasm_min_input_mb: 1
+
+# ============================================================================
+#  Read-filtering grid
+# ============================================================================
+# chopper applies BOTH cutoffs in one pass. Every (min_q, min_len) combination
+# below is assembled independently; contig_count picks the best result across
+# the whole grid.
+#
+# This is the DEFAULT grid, used by any sample that doesn't set its own
+# `filter:` block (see sample_a above, which overrides it to a single
+# q20_l1000 cell instead of the full grid below).
+filter:
+  min_q:   [10, 15, 20]
+  min_len: [1000, 2500, 7500, 10000]
