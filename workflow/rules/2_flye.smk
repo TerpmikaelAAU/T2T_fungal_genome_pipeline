@@ -1,3 +1,7 @@
+# Only built when a sample wants organelle recovery (wants_organelle()).
+# flye is NOT the main nuclear assembler -- hifiasm is -- this is purely the
+# input flye assembly graph (output.d) that getorganelle mines for a
+# mitochondrial contig.
 rule flye:
     input:
         a = rules.chopper_flye.output.a

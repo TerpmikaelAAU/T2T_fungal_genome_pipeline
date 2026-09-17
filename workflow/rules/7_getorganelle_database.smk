@@ -1,3 +1,7 @@
+# One-time fetch of GetOrganelle's reference database (v0.0.1) into a fixed
+# "0.0.1" directory at the repo root. Not wired as a Snakemake dependency of
+# rule getorganelle (which reads it via --config-dir without declaring it as
+# input) -- run this manually once, before the first getorganelle build.
 rule getorganelle_database:
     output:
         dir = directory("0.0.1"),

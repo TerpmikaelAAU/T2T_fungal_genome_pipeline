@@ -6,6 +6,29 @@ min_version("9.0")
 configfile: "config/config.yaml"
 
 # ============================================================================
+#  T2T fungal (and, as of v2, non-fungal) genome assembly pipeline
+# ============================================================================
+# Structure of this file, top to bottom:
+#   1. Sample handling       -- validates config['samples'], entry-point
+#                                helpers (pod5/bam/fastq), per-sample option
+#                                accessors (busco_lineage, organelle, filter
+#                                grid override, ...)
+#   2. Input resolvers        -- functions that pick the right upstream file
+#                                for a rule given a sample's entry point and
+#                                config (get_raw_fastq, get_assembly_input,
+#                                hifiasm_inputs, ...)
+#   3. Dorado binary          -- resolves a fetched-or-user-supplied dorado
+#   4. Adaptive resources     -- scaled_mem/scaled_time size requests off
+#                                actual input size and escalate on retry
+#   5. Rule includes          -- one file per pipeline stage, under
+#                                workflow/rules/, numbered in DAG order
+#   6. Targets (`rule all`)   -- assembled per sample according to its entry
+#                                point and options (see final_targets())
+#
+# See config/config.yaml for what's configurable and README.md for how to
+# run this.
+
+# ============================================================================
 #  Sample handling / entry points
 # ============================================================================
 SAMPLES = config["samples"]
@@ -101,7 +124,10 @@ def get_correct_input(wildcards):
 def get_assembly_input(wildcards):
     """FASTQ fed to hifiasm for one grid cell: corrected (then refastq'd) if
     dorado_correct is enabled, else the chopper grid output directly --
-    hifiasm --ont does its own ONT-specific correction (see Handoff.md)."""
+    hifiasm --ont does its own ONT-specific correction, and on at least one
+    large low-N50 dataset dorado correct discarded the large majority of
+    reads and made the assembly worse (see config.yaml `dorado_correct`),
+    so that's off by default."""
     n = wildcards.input
     if config["dorado_correct"]["enabled"]:
         return f"data/seqtk/fasta_to_fastq/{n}_q{wildcards.minq}_l{wildcards.minlen}.fastq"

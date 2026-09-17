@@ -17,8 +17,9 @@ rule chopper:
     threads:
         12
     resources:
-        # Floor raised from 8000: the efficiency report showed chopper sitting
-        # at 98.9% memory, one bad read away from an OOM (see Handoff.md).
+        # Floor raised from 8000: a real run's efficiency report showed
+        # chopper sitting at 98.9% memory utilization, one bad read away
+        # from an OOM.
         mem_mb=scaled_mem(0.15, 16000),
         runtime=resources["chopper"]["runtime"]
     conda:

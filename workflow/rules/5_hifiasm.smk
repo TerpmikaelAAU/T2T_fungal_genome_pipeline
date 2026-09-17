@@ -1,3 +1,8 @@
+# The main nuclear assembler, run independently per (min_q, min_len) grid
+# cell (contig_count picks the winner across cells -- see 6_00). `--ont` mode
+# does hifiasm's own ONT-specific correction, so dorado_correct is off by
+# default (see config.yaml `dorado_correct`); `--ul` optionally adds a
+# second, fixed-cutoff ultralong read set (config `ultralong`).
 rule hifiasm:
     input:
         unpack(hifiasm_inputs)
@@ -36,9 +41,13 @@ rule hifiasm:
         mkdir -p $(dirname {params.prefix})
         size=$(stat -c%s {input.a} 2>/dev/null || echo 0)
         if [ "$size" -lt {params.min_bytes} ]; then
-            # A near-empty grid point SIGILLs hifiasm instead of failing cleanly
-            # (see Handoff.md §5.2). Write empty placeholders so contig_count's
-            # own filter (count > 0) skips this cell instead of retrying it.
+            # A near-empty grid point makes hifiasm crash with SIGILL (an
+            # illegal instruction in its SIMD kernels) instead of failing
+            # cleanly -- and Snakemake's retry logic used to interpret that
+            # as a memory problem and retry with more RAM, repeating the
+            # same crash at escalating cost. Write empty placeholders
+            # instead so contig_count's own filter (count > 0) skips this
+            # cell rather than retrying it.
             echo "WARNING: {input.a} is ${{size}} bytes (< {params.min_bytes}); skipping hifiasm, writing empty placeholders" >&2
             : > {output.a}
             for f in {output.b}; do : > "$f"; done

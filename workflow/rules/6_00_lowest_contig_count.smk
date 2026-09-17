@@ -1,3 +1,9 @@
+# Picks the winning assembly across a sample's (min_q, min_len) grid: the
+# fewest-contigs candidate, on the assumption that's the most contiguous
+# assembly. CAVEAT for repeat-rich genomes (e.g. oomycetes): fewest contigs
+# can mean COLLAPSED repeats rather than a genuinely better assembly --
+# cross-check the winner's total length in assembly_stats.tsv against the
+# expected genome size before trusting this pick.
 def contig_count_candidates(wildcards):
     grid = filter_grid(wildcards.input)
     return expand("data/hifiasm/{input}_q{minq}_l{minlen}/{input}_q{minq}_l{minlen}.fa",

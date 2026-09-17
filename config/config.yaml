@@ -62,9 +62,12 @@ dorado:
   # path: /my/own/dorado/bin/dorado    # uncomment to skip the download
 
 dorado_correct:
-  # A real GPU run showed dorado correct discards ~85% of this dataset's
-  # reads (see Handoff.md); hifiasm --ont does its own ONT-specific
-  # correction instead. Off by default; flip on to experiment with it.
+  # A real GPU run on p_infestans_88069 showed dorado correct discards
+  # ~85% of this dataset's reads (7.27 Gbp in -> 1.11 Gbp out), dropping a
+  # ~30x-coverage input to ~4.6x effective coverage -- too little for
+  # hifiasm to assemble anything useful. hifiasm --ont does its own
+  # ONT-specific correction instead, which is what this pipeline relies on
+  # by default. Flip this on only to experiment with dorado's correction.
   enabled: false
   # Smaller index_size = less RAM per block = more blocks. 4G is a safe start.
   index_size: "4G"
@@ -72,8 +75,14 @@ dorado_correct:
   # Set to "cpu" to keep inference off the GPU as well.
   inference_device: "cuda:all"
 
-# hifiasm's --ul input. Off by default: this dataset has only ~3.5x coverage
-# above 20 kb, nowhere near enough for --ul to help (see Handoff.md).
+# hifiasm's --ul input: a second, fixed-cutoff read set (independent of the
+# filter grid above) fed to hifiasm alongside each grid cell's main input.
+# Currently enabled for both configured samples. Worth checking per-sample
+# whether there's enough coverage above min_len to be worth it -- a
+# retention check on p_infestans_88069's raw reads found only ~3.5x
+# coverage above 20 kb, which argued against --ul at that particular
+# cutoff; revisit if a sample's --ul-assisted assembly doesn't actually
+# improve on its non-ul equivalent.
 ultralong:
   enabled: true
   min_q: 10

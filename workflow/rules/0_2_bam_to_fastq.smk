@@ -1,3 +1,6 @@
+# Reached for both pod5 (our own basecalled BAM) and bam (user-supplied)
+# entry points -- either way the BAM needs converting to plain FASTQ before
+# it can enter porechop/chopper. get_bam() resolves which BAM applies.
 rule bam_to_fastq:
     input:
         a = get_bam
