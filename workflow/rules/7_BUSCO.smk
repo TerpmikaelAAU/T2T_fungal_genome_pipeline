@@ -1,3 +1,8 @@
+# Genome completeness check on the deliverable assembly (polished if a BAM
+# was available, else the winning raw grid-cell assembly). `lineage` is
+# per-sample (busco_lineage(), default fungi_odb12) -- pick the dataset that
+# matches the organism, e.g. stramenopiles_odb* for oomycetes like
+# Phytophthora, which are NOT fungi despite this pipeline's name.
 rule busco:
     input:
         a = lambda w: (f"data/dorado_polish/{w.input}.fasta" if has_bam(w.input)

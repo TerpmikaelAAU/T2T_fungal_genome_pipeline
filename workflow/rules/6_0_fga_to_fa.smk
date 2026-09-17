@@ -1,3 +1,6 @@
+# "fga" = FASTA-from-GFA: hifiasm's primary-contig graph (prefix.p_ctg.gfa)
+# encodes each contig as an 'S' (segment) line; this pulls just the
+# name/sequence pairs into a plain FASTA for everything downstream.
 rule fga:
     input:
         a = rules.hifiasm.output.a,

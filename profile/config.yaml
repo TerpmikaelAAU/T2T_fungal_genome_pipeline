@@ -22,18 +22,51 @@ max-threads: 64
 # HARD CAP on how many jobs can be in SLURM at once. Even if a checkpoint
 # expands into hundreds of blocks, never more than this many are submitted.
 jobs: 30
+# Threads for rules that run locally (none currently do, but this bounds it).
 local-cores: 1
+# Ceph/NFS can lag between a job finishing and its output being visible on
+# the submitting node; this is how long Snakemake waits before deciding an
+# expected output is actually missing.
 latency-wait: 120
+# Only rebuild when a file is actually newer than its output. Snakemake's
+# default trigger set also rebuilds a rule whenever its conda env definition
+# changed since the last run, even if the actual package versions resolved
+# are identical -- after all ~10 envs here were bumped to current releases
+# in one pass, that alone made Snakemake want to rebuild every sample's
+# pipeline from scratch, including walking back to raw inputs that may no
+# longer exist (this happened for real: p_infestans_88069's raw .fastq.gz
+# was deleted once its results/ were final, and a later plain
+# `snakemake --profile profile` crashed trying to walk back through
+# decompress_once to regenerate it) and hitting protected() outputs it then
+# can't overwrite. Tradeoff: a rule whose code or conda env genuinely
+# changed won't be flagged for rebuild by that alone any more -- only an
+# actually-newer input file triggers one.
+rerun-triggers: [mtime]
 # Snakemake retries ANY failure, doubling mem_mb each time via scaled_mem().
-# That's right for a real OOM kill, but a SIGILL on empty input burned
-# 64->128->256->512 GB across five assemblies before this was understood
-# (see Handoff.md §5.3) -- each attempt died in <10s using 155 MB.
+# That's right for a real OOM kill, but hifiasm crashes with SIGILL (illegal
+# instruction) on a near-empty FASTQ input -- unrelated to memory -- and
+# retrying that with more memory just repeats the crash. Before this was
+# understood, one such crash burned 64->128->256->512 GB across five
+# assemblies, each dying in <10s using only 155 MB. The hifiasm rule now
+# guards against near-empty input directly (see `hifiasm_min_input_mb` in
+# config.yaml), so a real transient failure still gets one retry here.
 retries: 1
 # Submission RATE limit -- protects the scheduler from a burst.
 max-jobs-per-second: 5
 max-status-checks-per-second: 5
+# Keep running every job that doesn't depend on a failed one, instead of
+# stopping the whole workflow at the first failure -- important with a
+# 2x2/3x4 grid, where one bad cell shouldn't block every other cell's
+# assembly, contig_count, busco, etc.
 keep-going: True
+# A job killed mid-write (OOM, node failure, a manual scancel) can leave
+# Snakemake's metadata marking its output "incomplete" on the next run;
+# this lets Snakemake just re-run those rather than erroring out demanding
+# `--rerun-incomplete` be passed by hand each time.
 rerun-incomplete: True
+# Don't echo every rule's full shell command to the log -- keeps
+# snake_log/run_*.log readable; per-rule logs under logs/ still capture
+# stdout/stderr for the commands themselves.
 printshellcmds: False
 
 # Plugin conveniences that replace things we used to hand-roll

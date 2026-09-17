@@ -1,3 +1,8 @@
+# Last step for pod5/bam entry points: polish the winning assembly using the
+# aligned reads (dorado_align) and their move table. GPU-only. Output is
+# temp() -- final_genome (9_stats.smk) copies it straight into
+# results/{sample}/{sample}_final.fasta, so this copy is redundant once that
+# exists.
 rule dorado_polish:
     input:
         dorado = dorado_bin,

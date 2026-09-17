@@ -1,3 +1,6 @@
+# dorado correct outputs FASTA (no quality scores); hifiasm --ont wants
+# FASTQ. Only reached when config `dorado_correct.enabled: true` -- see
+# get_assembly_input() -- padding every base with a fake '#' quality score.
 rule seqtk_fasta_to_fastq:
     input:
         a = "data/dorado/{input}_q{minq}_l{minlen}.fasta"
