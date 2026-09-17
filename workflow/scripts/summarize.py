@@ -100,9 +100,15 @@ for row in reads:
                f"{as_int(row.get('N50')):>12,}")
 out.append("")
 
+n_candidates = sum(1 for row in asm if "contig/" not in row.get("file", ""))
+
 out.append("-" * 70)
 out.append("ASSEMBLIES  (one per min_q/min_len grid cell; lowest contig count is selected)")
 out.append("-" * 70)
+if n_candidates == 1:
+    out.append("Note: only 1 grid cell was configured for this sample -- selected")
+    out.append("assembly is that cell's output, not a winner across a grid.")
+    out.append("")
 out.append(f"{'candidate':<32}{'contigs':>12}{'total bp':>16}{'N50':>12}")
 for row in asm:
     out.append(f"{label(row.get('file','')):<32}"

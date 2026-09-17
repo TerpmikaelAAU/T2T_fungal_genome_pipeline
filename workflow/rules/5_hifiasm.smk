@@ -17,9 +17,13 @@ rule hifiasm:
         ])
 
     threads:
-        12
+        32
     resources:
-        mem_mb=scaled_mem(6.0, 64000),
+        # factor 4.0, ~20-25% headroom above observed peak RSS/input on the
+        # p_infestans_88069 2x2 grid (actual ratio 2.4-3.3x, worst case at
+        # the highest-coverage cells); was 6.0 and ran at 40-55% memory
+        # utilization (efficiency_report_c170c0c2-*.csv).
+        mem_mb=scaled_mem(4.0, 64000),
         runtime=scaled_time(0.3, 720),
     params:
         ul_flag    = lambda w, input: f"--ul {input.b}" if config["ultralong"]["enabled"] else "",
@@ -40,5 +44,10 @@ rule hifiasm:
             for f in {output.b}; do : > "$f"; done
         else
             hifiasm --ont -t {threads} --primary {params.ul_flag} -o "{params.prefix}" {input.a}
+            # hifiasm's overlap/index caches (prefix.*.bin) aren't declared
+            # Snakemake outputs, so temp() can't clean them -- and they're
+            # large (100s of GB per grid cell). Nothing downstream reads
+            # them once the .gfa files above exist, so delete them here.
+            rm -f {params.prefix}.*.bin
         fi
         """
