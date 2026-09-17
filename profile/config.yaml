@@ -1,47 +1,74 @@
-#command with which to submit tasks as SLURM jobs
-cluster:
-  mkdir -p logs/{rule}/ &&
-  sbatch
-    --parsable
-    --partition={resources.partition}
-    --qos={resources.qos}
-    --cpus-per-task={threads}
-    --gpus={resources.gpus}
-    --mem={resources.mem_mb}
-    --time={resources.runtime}
-    --job-name=smk-{rule}-{wildcards}
-    --output=logs/{rule}/{rule}-{wildcards}-%j.out
-#if rules don't have resources set, use these default values.
-#Note that "mem" will be converted to "mem_mb" under the hood, so mem_mb is prefered
+# Snakemake >=8 profile for the AAU BioCloud cluster.
+# Submission is handled by the native SLURM executor plugin, so there is no
+# hand-written sbatch command and no cluster-status polling script any more.
+executor: slurm
+
+# Replaces the old `use-conda: True`
+software-deployment-method:
+  - conda
+
+# Defaults for any rule that does not set them itself.
+# NOTE: `runtime` is an INTEGER NUMBER OF MINUTES in Snakemake >=8.
+# BioCloud assigns partitions automatically from the mem-per-CPU ratio,
+# so slurm_partition is deliberately NOT set here.
 default-resources:
-  - partition="shared"
-  - qos="normal"
-  #- threads=1
-  - mem_mb=512
-  - gpus=0
-  - runtime="0-01:00:00"
+  runtime: 60
+  mem_mb: 512
+  qos: "normal"
 
- 
+# bio-node10 (the only GPU node) has 64 threads; nothing can use more.
+max-threads: 64
 
-#max threads per job/rule. Will take precedence over anything else. Adjust this
-#before submitting to SLURM and leave threads settings elsewhere untouched
-max-threads: 128
-use-conda: True
-use-singularity: False
-printshellcmds: False
-jobs: 50
+# HARD CAP on how many jobs can be in SLURM at once. Even if a checkpoint
+# expands into hundreds of blocks, never more than this many are submitted.
+jobs: 30
+# Threads for rules that run locally (none currently do, but this bounds it).
 local-cores: 1
+# Ceph/NFS can lag between a job finishing and its output being visible on
+# the submitting node; this is how long Snakemake waits before deciding an
+# expected output is actually missing.
 latency-wait: 120
-restart-times: 0
-max-jobs-per-second: 10 #don't touch
-keep-going: True
-rerun-incomplete: True
-scheduler: greedy
+# Only rebuild when a file is actually newer than its output. Snakemake's
+# default trigger set also rebuilds a rule whenever its conda env definition
+# changed since the last run, even if the actual package versions resolved
+# are identical -- after all ~10 envs here were bumped to current releases
+# in one pass, that alone made Snakemake want to rebuild every sample's
+# pipeline from scratch, including walking back to raw inputs that may no
+# longer exist (this happened for real: a sample's raw .fastq.gz was
+# deleted once its results/ were final, and a later plain
+# `snakemake --profile profile` crashed trying to walk back through
+# decompress_once to regenerate it) and hitting protected() outputs it then
+# can't overwrite. Tradeoff: a rule whose code or conda env genuinely
+# changed won't be flagged for rebuild by that alone any more -- only an
+# actually-newer input file triggers one.
+rerun-triggers: [mtime]
+# Snakemake retries ANY failure, doubling mem_mb each time via scaled_mem().
+# That's right for a real OOM kill, but hifiasm crashes with SIGILL (illegal
+# instruction) on a near-empty FASTQ input -- unrelated to memory -- and
+# retrying that with more memory just repeats the crash. Before this was
+# understood, one such crash burned 64->128->256->512 GB across five
+# assemblies, each dying in <10s using only 155 MB. The hifiasm rule now
+# guards against near-empty input directly (see `hifiasm_min_input_mb` in
+# config.yaml), so a real transient failure still gets one retry here.
+retries: 1
+# Submission RATE limit -- protects the scheduler from a burst.
+max-jobs-per-second: 5
 max-status-checks-per-second: 5
-cluster-cancel: scancel
-#script to get job status for snakemake, unfortunately neccessary
-cluster-status: extras/slurm-status.sh
+# Keep running every job that doesn't depend on a failed one, instead of
+# stopping the whole workflow at the first failure -- important with a
+# 2x2/3x4 grid, where one bad cell shouldn't block every other cell's
+# assembly, contig_count, busco, etc.
+keep-going: True
+# A job killed mid-write (OOM, node failure, a manual scancel) can leave
+# Snakemake's metadata marking its output "incomplete" on the next run;
+# this lets Snakemake just re-run those rather than erroring out demanding
+# `--rerun-incomplete` be passed by hand each time.
+rerun-incomplete: True
+# Don't echo every rule's full shell command to the log -- keeps
+# snake_log/run_*.log readable; per-rule logs under logs/ still capture
+# stdout/stderr for the commands themselves.
+printshellcmds: False
 
-
-
-
+# Plugin conveniences that replace things we used to hand-roll
+slurm-keep-successful-logs: True
+slurm-efficiency-report: True

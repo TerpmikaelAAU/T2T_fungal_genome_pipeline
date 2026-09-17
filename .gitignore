@@ -12,3 +12,10 @@ busco_downloads/**
 .temp_dorado_model*/** 
 dorado_model/*
 dorado_model
+results/**
+# migration backups
+workflow/rules.backup.*/
+migrate_rules.sh
+resources/
+Handoff.md
+efficiency_report*
