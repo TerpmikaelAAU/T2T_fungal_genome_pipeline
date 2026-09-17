@@ -3,7 +3,11 @@ rule busco:
         a = lambda w: (f"data/dorado_polish/{w.input}.fasta" if has_bam(w.input)
              else f"data/contig/{w.input}_lowest_contig_file.fa")
     output:
-        dir = directory("data/busco/{input}/BUSCO"),
+        # Only the short summary gets pulled into results/summary.txt (see
+        # summarize.py); the full tables/logs/per-gene predictions here are
+        # not, so once summary.txt exists this whole directory is dead
+        # weight -- temp() it like everything else that isn't a deliverable.
+        dir = temp(directory("data/busco/{input}/BUSCO")),
     params:
         lineage = lambda w: busco_lineage(w.input)
     threads:

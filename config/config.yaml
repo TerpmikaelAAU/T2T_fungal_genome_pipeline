@@ -11,8 +11,8 @@
 #   fastq -> a single .fastq or .fastq.gz file
 #
 # Optional per-sample keys:
-#   busco_lineage : BUSCO dataset          (default: fungi_odb10)
-#   organelle     : GetOrganelle database, or 'none' to skip (default: fungus_mt)
+#   busco_lineage : BUSCO dataset          (default: fungi_odb12)
+#   organelle     : GetOrganelle database, or 'none' to skip (default: none)
 #   subsample     : coverage cap; omit to use ALL reads (recommended)
 # ---------------------------------------------------------------------------
 samples:
@@ -22,8 +22,23 @@ samples:
     busco_lineage: stramenopiles_odb12
     organelle: none
     porechop: false
+    # Single-cell run: this sample already has its own q20_l1000 hifiasm
+    # assembly (data/hifiasm/p_infestans_88069_q20_l1000/). Without this
+    # override, contig_count/assembly_stats fall back to the GLOBAL config
+    # filter grid below (currently tiia_apiospora's 3x4=12 cells) and would
+    # try to build 11 more p_infestans hifiasm assemblies it never asked for.
+    filter:
+      min_q:   [20]
+      min_len: [1000]
 
-  
+  tiia_apiospora:
+    type: fastq
+    path: /home/bio.aau.dk/zl01hh/Tiia_assembly_Apiospora/Merged.fastq
+    porechop: false
+    # busco_lineage left at default (fungi_odb12) -- unlike p_infestans_88069
+    # this is an actual fungus. organelle left at default (none/off).
+
+
   #p_infestans_88069:
   #type: pod5
   #path: /ABSOLUTE/PATH/TO/pod5_pass/barcode10
@@ -60,7 +75,7 @@ dorado_correct:
 # hifiasm's --ul input. Off by default: this dataset has only ~3.5x coverage
 # above 20 kb, nowhere near enough for --ul to help (see Handoff.md).
 ultralong:
-  enabled: false
+  enabled: true
   min_q: 10
   min_len: 50000
 
@@ -74,8 +89,12 @@ hifiasm_min_input_mb: 1
 # ============================================================================
 # chopper applies BOTH cutoffs in one pass. Every (min_q, min_len) combination
 # below is assembled independently; contig_count picks the best result across
-# the whole grid. Start small to confirm the pipeline runs clean end to end
-# before opening it up -- a 4x4 grid means 16 hifiasm runs.
+# the whole grid.
+#
+# This is the DEFAULT grid, used by any sample that doesn't set its own
+# `filter:` block (see p_infestans_88069 above, which overrides it to its
+# single q20_l1000 cell). Below is tiia_apiospora's 3x4=12-cell grid; it no
+# longer leaks into other samples' contig_count/assembly_stats requirements.
 filter:
-  min_q:   [10, 15]
-  min_len: [5000, 10000]
+  min_q:   [10, 15, 20]
+  min_len: [1000, 2500, 7500, 10000]

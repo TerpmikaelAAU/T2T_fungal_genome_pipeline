@@ -42,13 +42,23 @@ def subsampled(name):
     return bool(SAMPLES[name].get("subsample"))
 
 def busco_lineage(name):
-    return SAMPLES[name].get("busco_lineage", "fungi_odb10")
+    return SAMPLES[name].get("busco_lineage", "fungi_odb12")
 
 def organelle_db(name):
-    return SAMPLES[name].get("organelle", "fungus_mt")
+    return SAMPLES[name].get("organelle", "none")
 
 def wants_organelle(name):
     return str(organelle_db(name)).lower() != "none"
+
+def filter_grid(name):
+    """This sample's (min_q, min_len) grid: a per-sample override if given,
+    else the global config['filter'] default.
+
+    config['filter'] is shared by every sample unless overridden here, so
+    editing it for one sample (e.g. widening tiia_apiospora's grid) used to
+    silently change what contig_count/assembly_stats required from every
+    other sample too -- including combinations never actually run for them."""
+    return SAMPLES[name].get("filter", config["filter"])
 
 # --- input resolvers used by the rules -------------------------------------
 def get_bam(wildcards):
@@ -179,7 +189,7 @@ def scaled_time(factor, floor_min, cap_min=MAX_RUNTIME):
 resources = {
     "hifiasm":          {"mem_mb": 30000,  "runtime": 440},
     "flye":             {"mem_mb": 30000,  "runtime": 440},
-    "busco":            {"mem_mb": 10000,  "runtime": 880},
+    "busco":            {"mem_mb": 14000,  "runtime": 880},  # was 10000; peaked at 9950 (99.5%) on p_infestans_88069
     "rasusa":           {"mem_mb": 5000,   "runtime": 400},
     "chopper":          {"mem_mb": 5000,   "runtime": 400},
     "fga":              {"mem_mb": 5000,   "runtime": 600},

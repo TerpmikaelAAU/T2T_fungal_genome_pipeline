@@ -37,11 +37,16 @@ rule read_stats:
         """
 
 
+def assembly_stats_candidates(wildcards):
+    grid = filter_grid(wildcards.input)
+    return expand("data/hifiasm/{input}_q{minq}_l{minlen}/{input}_q{minq}_l{minlen}.fa",
+                  input=wildcards.input,
+                  minq=grid["min_q"],
+                  minlen=grid["min_len"])
+
 rule assembly_stats:
     input:
-        candidates = expand("data/hifiasm/{{input}}_q{minq}_l{minlen}/{{input}}_q{minq}_l{minlen}.fa",
-                            minq=config["filter"]["min_q"],
-                            minlen=config["filter"]["min_len"]),
+        candidates = assembly_stats_candidates,
         best = "data/contig/{input}_lowest_contig_file.fa",
     output:
         a = "results/{input}/assembly_stats.tsv"

@@ -4,7 +4,7 @@ rule dorado_polish:
         a = rules.dorado_align.output.a,
         b = rules.contig_count.output.a,
     output:
-        a = "data/dorado_polish/{input}.fasta"
+        a = temp("data/dorado_polish/{input}.fasta")
     threads:
         16
     resources:
