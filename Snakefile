@@ -78,9 +78,9 @@ def filter_grid(name):
     else the global config['filter'] default.
 
     config['filter'] is shared by every sample unless overridden here, so
-    editing it for one sample (e.g. widening tiia_apiospora's grid) used to
-    silently change what contig_count/assembly_stats required from every
-    other sample too -- including combinations never actually run for them."""
+    widening the grid for one sample used to silently change what
+    contig_count/assembly_stats required from every other sample too --
+    including combinations never actually run for them."""
     return SAMPLES[name].get("filter", config["filter"])
 
 # --- input resolvers used by the rules -------------------------------------
@@ -215,7 +215,7 @@ def scaled_time(factor, floor_min, cap_min=MAX_RUNTIME):
 resources = {
     "hifiasm":          {"mem_mb": 30000,  "runtime": 440},
     "flye":             {"mem_mb": 30000,  "runtime": 440},
-    "busco":            {"mem_mb": 14000,  "runtime": 880},  # was 10000; peaked at 9950 (99.5%) on p_infestans_88069
+    "busco":            {"mem_mb": 14000,  "runtime": 880},  # was 10000; peaked at 9950 (99.5%) on a large test sample
     "rasusa":           {"mem_mb": 5000,   "runtime": 400},
     "chopper":          {"mem_mb": 5000,   "runtime": 400},
     "fga":              {"mem_mb": 5000,   "runtime": 600},

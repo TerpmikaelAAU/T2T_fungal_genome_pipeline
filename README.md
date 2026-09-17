@@ -6,11 +6,14 @@ https://doi.org/10.3390/jof11100701
 
 The tagged `v1.0.0` release on `main` is what the paper describes. This
 branch (`v2-flexible-inputs`) generalises the pipeline beyond the paper's
-~40 Mb fungal genomes -- flexible entry points, adaptive resource requests,
-and a read-filtering grid -- and has been validated end-to-end on a
-repeat-rich, ~240 Mb oomycete genome (*Phytophthora infestans*) as a stress
-test for a much larger, more repetitive dataset than the paper's fungal
-genomes.
+~40 Mb fungal genomes -- flexible entry points, a read-filtering grid, and
+resource requests that scale off actual input size (`scaled_mem`/
+`scaled_time` in the Snakefile) instead of fixed per-rule numbers. That
+scaling has been exercised end-to-end on a much larger, heavily duplicated
+genome (~240 Mb, ~75% transposable elements -- typical of many oomycete
+genomes), confirming memory/runtime requests hold up well outside the
+paper's ~40 Mb fungal genomes, where the per-rule figures the paper's
+pipeline shipped with were tuned.
 
 ## What this pipeline does
 Given raw Nanopore reads (or an already-basecalled BAM, or already-basecalled
@@ -112,12 +115,16 @@ filter:                      # the DEFAULT (min_q, min_len) grid
 `chopper` filters reads at every `(min_q, min_len)` combination in `filter:`,
 and each cell gets assembled independently; `contig_count` picks the
 fewest-contigs winner across the whole grid. **This top-level `filter:` is
-the default for every sample that doesn't set its own.** If you give one
-sample a much larger or smaller grid than another (as `p_infestans_88069`
-and `tiia_apiospora` do in this repo's config), give it its own `filter:`
-block -- otherwise editing the shared default for one sample silently
-changes what every *other* sample's `contig_count`/`assembly_stats` requires
-too, including grid cells that sample never actually ran.
+the default for every sample that doesn't set its own** (see `sample_a` in
+`config/config.yaml`'s example, which overrides it to a single cell). If
+you give one sample a much larger or smaller grid than another, give it its
+own `filter:` block -- otherwise editing the shared default for one sample
+silently changes what every *other* sample's `contig_count`/
+`assembly_stats` requires too, including grid cells that sample never
+actually ran. This is a real trap, not a hypothetical one: it's exactly
+what happened during this pipeline's own development, when one sample's
+grid was widened for a separate experiment and silently changed what
+another, already-finished sample's `contig_count` demanded next.
 
 For a repeat-rich genome, don't take "fewest contigs" at face value: check
 the winner's total length in `assembly_stats.tsv` against your expected
@@ -128,7 +135,7 @@ assembly.
 `hifiasm --ont` does its own ONT-specific read correction, and that's the
 default (`dorado_correct.enabled: false`). Only turn `dorado_correct` on if
 you specifically want to experiment with dorado's correction instead: on
-`p_infestans_88069` (N50 ~5.2 kb) a real GPU run of `dorado correct`
+one large test sample (N50 ~5.2 kb) a real GPU run of `dorado correct`
 discarded ~85% of reads (7.27 Gbp in -> 1.11 Gbp out), dropping ~30x raw
 coverage to ~4.6x effective coverage -- far too little for hifiasm to
 assemble anything useful from. `dorado correct` may still be worth using on
@@ -278,8 +285,8 @@ Learned from running this pipeline on BioCloud; useful if you're adapting
   missing script path kills even a dry run (`-n`), before any rule executes.
 - **Wildcard constraints matter for parsing.** `minq`, `minlen`, and `block`
   are constrained to `\d+` in the Snakefile so a filename like
-  `p_infestans_88069_q10_l5000` parses as `input=p_infestans_88069,
-  minq=10, minlen=5000` instead of Snakemake trying every possible split.
+  `sample_a_q10_l5000` parses as `input=sample_a, minq=10, minlen=5000`
+  instead of Snakemake trying every possible split.
 - **Every rule's `log:` directive must contain every one of that rule's
   wildcards**, or Snakemake refuses to build the DAG at all.
 - **`git add -A` sweeps in generated junk.** `data/`, `results/`, `logs/`,

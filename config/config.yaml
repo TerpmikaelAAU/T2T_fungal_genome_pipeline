@@ -14,47 +14,49 @@
 #   busco_lineage : BUSCO dataset          (default: fungi_odb12)
 #   organelle     : GetOrganelle database, or 'none' to skip (default: none)
 #   subsample     : coverage cap; omit to use ALL reads (recommended)
+#   porechop      : adapter trimming, true/false (default: true)
+#   filter        : per-sample (min_q, min_len) grid override -- use this
+#                   when one sample needs a different grid than the shared
+#                   default below (see the `filter:` section further down,
+#                   and README.md's "read-filtering grid" section for why
+#                   this matters)
 # ---------------------------------------------------------------------------
 samples:
-  p_infestans_88069:
+  sample_a:
     type: fastq
-    path: /home/bio.aau.dk/zl01hh/P_infestans_88069_Nanopore_Raw/P_infestans_88069.fastq.gz
-    busco_lineage: stramenopiles_odb12
+    path: /ABSOLUTE/PATH/TO/sample_a.fastq.gz
+    busco_lineage: fungi_odb12
     organelle: none
     porechop: false
-    # Single-cell run: this sample already has its own q20_l1000 hifiasm
-    # assembly (data/hifiasm/p_infestans_88069_q20_l1000/). Without this
-    # override, contig_count/assembly_stats fall back to the GLOBAL config
-    # filter grid below (currently tiia_apiospora's 3x4=12 cells) and would
-    # try to build 11 more p_infestans hifiasm assemblies it never asked for.
+    # Example per-sample grid override: without this, sample_a would fall
+    # back to the GLOBAL `filter:` grid below and be built across every
+    # cell in it, not just this one.
     filter:
       min_q:   [20]
       min_len: [1000]
 
-  tiia_apiospora:
+  sample_b:
     type: fastq
-    path: /home/bio.aau.dk/zl01hh/Tiia_assembly_Apiospora/Merged.fastq
+    path: /ABSOLUTE/PATH/TO/sample_b.fastq
     porechop: false
-    # busco_lineage left at default (fungi_odb12) -- unlike p_infestans_88069
-    # this is an actual fungus. organelle left at default (none/off).
+    # busco_lineage/organelle left at their defaults here.
 
+  #sample_c:
+  #  type: pod5
+  #  path: /ABSOLUTE/PATH/TO/pod5_pass/sample_c
+  #  busco_lineage: fungi_odb12
+  #  organelle: none
 
-  #p_infestans_88069:
-  #type: pod5
-  #path: /ABSOLUTE/PATH/TO/pod5_pass/barcode10
-  #busco_lineage: stramenopiles_odb10
-  #organelle: none
-
-  #barcode11:
+  #sample_d:
   #  type: bam
-  #  path: /ABSOLUTE/PATH/TO/barcode11.bam
-  #  busco_lineage: fungi_odb10
-  #  subsample: {coverage: 100, genome_size: 40mb} 
+  #  path: /ABSOLUTE/PATH/TO/sample_d.bam
+  #  busco_lineage: fungi_odb12
+  #  subsample: {coverage: 100, genome_size: 40mb}
 
-  #barcode12:
+  #sample_e:
   #  type: fastq
-  #  path: /ABSOLUTE/PATH/TO/barcode12.fastq.gz
-  #  busco_lineage: fungi_odb10
+  #  path: /ABSOLUTE/PATH/TO/sample_e.fastq.gz
+  #  busco_lineage: fungi_odb12
 
 # ============================================================================
 dorado:
@@ -62,12 +64,13 @@ dorado:
   # path: /my/own/dorado/bin/dorado    # uncomment to skip the download
 
 dorado_correct:
-  # A real GPU run on p_infestans_88069 showed dorado correct discards
-  # ~85% of this dataset's reads (7.27 Gbp in -> 1.11 Gbp out), dropping a
-  # ~30x-coverage input to ~4.6x effective coverage -- too little for
-  # hifiasm to assemble anything useful. hifiasm --ont does its own
-  # ONT-specific correction instead, which is what this pipeline relies on
-  # by default. Flip this on only to experiment with dorado's correction.
+  # hifiasm --ont does its own ONT-specific read correction, which this
+  # pipeline relies on by default. On at least one large, low-N50 (~5 kb)
+  # test dataset, a real GPU run of dorado correct discarded ~85% of reads
+  # (7.27 Gbp in -> 1.11 Gbp out), dropping ~30x raw coverage to ~4.6x
+  # effective coverage -- too little for hifiasm to assemble anything
+  # useful from. Flip this on only to experiment with dorado's correction
+  # instead; it may do better on data with a longer read N50.
   enabled: false
   # Smaller index_size = less RAM per block = more blocks. 4G is a safe start.
   index_size: "4G"
@@ -77,14 +80,13 @@ dorado_correct:
 
 # hifiasm's --ul input: a second, fixed-cutoff read set (independent of the
 # filter grid above) fed to hifiasm alongside each grid cell's main input.
-# Currently enabled for both configured samples. Worth checking per-sample
-# whether there's enough coverage above min_len to be worth it -- a
-# retention check on p_infestans_88069's raw reads found only ~3.5x
-# coverage above 20 kb, which argued against --ul at that particular
-# cutoff; revisit if a sample's --ul-assisted assembly doesn't actually
-# improve on its non-ul equivalent.
+# Off by default -- check per-sample whether there's enough coverage above
+# min_len to be worth it before enabling. On one large test dataset, a
+# retention check found only ~3.5x coverage above 20 kb, which argued
+# against --ul at that particular cutoff; revisit per-sample if an
+# --ul-assisted assembly doesn't actually improve on its non-ul equivalent.
 ultralong:
-  enabled: true
+  enabled: false
   min_q: 10
   min_len: 50000
 
@@ -101,9 +103,8 @@ hifiasm_min_input_mb: 1
 # the whole grid.
 #
 # This is the DEFAULT grid, used by any sample that doesn't set its own
-# `filter:` block (see p_infestans_88069 above, which overrides it to its
-# single q20_l1000 cell). Below is tiia_apiospora's 3x4=12-cell grid; it no
-# longer leaks into other samples' contig_count/assembly_stats requirements.
+# `filter:` block (see sample_a above, which overrides it to a single
+# q20_l1000 cell instead of the full grid below).
 filter:
   min_q:   [10, 15, 20]
   min_len: [1000, 2500, 7500, 10000]
