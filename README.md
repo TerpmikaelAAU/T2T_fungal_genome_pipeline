@@ -306,3 +306,31 @@ Learned from running this pipeline on BioCloud; useful if you're adapting
   `logs/`, `snake_log/`, `resources/`, efficiency reports, ...). Check
   `git status` before `git add -A` -- it's easy to accidentally stage
   generated junk.
+
+## How to cite
+If this pipeline (or its output) contributes to a publication, please cite
+the paper it comes from:
+
+> Terp, M.; Nyitrai, M.; Rusbjerg-Weberskov, C.E.; Sondergaard, T.E.;
+> Lübeck, M. Gapless near Telomer-to-Telomer Assembly of *Neurospora
+> intermedia*, *Aspergillus oryzae*, and *Trichoderma asperellum* from
+> Nanopore Simplex Reads. *Journal of Fungi* **2025**, *11*, 701.
+> https://doi.org/10.3390/jof11100701
+
+```bibtex
+@article{terp2025gapless,
+  author  = {Terp, Mikael and Nyitrai, Mark and Rusbjerg-Weberskov, Christian Enrico and Sondergaard, Teis E. and L{\"u}beck, Mette},
+  title   = {Gapless near Telomer-to-Telomer Assembly of Neurospora intermedia, Aspergillus oryzae, and Trichoderma asperellum from Nanopore Simplex Reads},
+  journal = {Journal of Fungi},
+  year    = {2025},
+  volume  = {11},
+  number  = {10},
+  pages   = {701},
+  doi     = {10.3390/jof11100701}
+}
+```
+
+If you're specifically using the `v2-flexible-inputs` generalisation (flexible
+entry points, the read-filtering grid, adaptive resources) rather than the
+exact paper pipeline, please also note the pipeline version/tag you ran
+(e.g. `v2.0.0`) and link to this repository.
