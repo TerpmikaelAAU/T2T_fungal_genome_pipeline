@@ -21,9 +21,11 @@ FASTQ), the pipeline:
 1. Optionally basecalls (pod5 entry point only) and trims adapters.
 2. Filters reads across a grid of quality/length cutoffs, assembling each
    cell independently with `hifiasm --ont`.
-3. Picks the winning assembly (fewest contigs) across the grid.
-4. Polishes it with `dorado polish` where a BAM is available.
-5. Runs BUSCO and reports read/assembly stats and coverage.
+3. Picks a winning assembly across the grid -- **twice, two independent
+   ways**: fewest contigs, and highest BUSCO completeness (see "The
+   read-filtering grid" below).
+4. Polishes each winner with `dorado polish` where a BAM is available.
+5. Runs BUSCO on each winner and reports read/assembly stats and coverage.
 6. Optionally recovers an organelle genome via `flye` + `GetOrganelle`.
 
 Everything is driven by Snakemake against the SLURM executor plugin -- one
@@ -113,23 +115,38 @@ filter:                      # the DEFAULT (min_q, min_len) grid
 
 ### The read-filtering grid, and the per-sample override
 `chopper` filters reads at every `(min_q, min_len)` combination in `filter:`,
-and each cell gets assembled independently; `contig_count` picks the
-fewest-contigs winner across the whole grid. **This top-level `filter:` is
-the default for every sample that doesn't set its own** (see `sample_a` in
-`config/config.yaml`'s example, which overrides it to a single cell). If
-you give one sample a much larger or smaller grid than another, give it its
-own `filter:` block -- otherwise editing the shared default for one sample
-silently changes what every *other* sample's `contig_count`/
-`assembly_stats` requires too, including grid cells that sample never
-actually ran. This is a real trap, not a hypothetical one: it's exactly
-what happened during this pipeline's own development, when one sample's
-grid was widened for a separate experiment and silently changed what
-another, already-finished sample's `contig_count` demanded next.
+and each cell gets assembled independently with `hifiasm`. **This top-level
+`filter:` is the default for every sample that doesn't set its own** (see
+`sample_a` in `config/config.yaml`'s example, which overrides it to a single
+cell). If you give one sample a much larger or smaller grid than another,
+give it its own `filter:` block -- otherwise editing the shared default for
+one sample silently changes what every *other* sample's `contig_count`/
+`highest_busco`/`assembly_stats` requires too, including grid cells that
+sample never actually ran. This is a real trap, not a hypothetical one: it's
+exactly what happened during this pipeline's own development, when one
+sample's grid was widened for a separate experiment and silently changed
+what another, already-finished sample's `contig_count` demanded next.
 
-For a repeat-rich genome, don't take "fewest contigs" at face value: check
-the winner's total length in `assembly_stats.tsv` against your expected
-genome size. Fewer contigs can mean collapsed repeats rather than a better
-assembly.
+**Two independent rules pick a winner across that grid, in parallel:**
+- `contig_count` picks the fewest-contigs assembly. For a repeat-rich
+  genome, don't take this at face value: check the winner's total length in
+  `assembly_stats.tsv` against your expected genome size -- fewer contigs
+  can mean collapsed repeats rather than a genuinely better assembly.
+- `highest_busco` runs BUSCO on *every* grid cell's assembly and picks the
+  one with the highest completeness ("C") percentage instead -- an
+  orthogonal, biology-grounded signal that doesn't share `contig_count`'s
+  collapsed-repeat blind spot. **Cost warning:** this runs BUSCO once per
+  grid cell, not once total -- a 3x4=12-cell grid means 12 BUSCO runs just
+  for this selection, on top of the two more (one per selector) that run
+  again afterwards on each winner's final, possibly-polished assembly.
+
+Both winners go through the rest of the pipeline independently -- polishing
+if a BAM is available, a final BUSCO run, stats, and a deliverable -- so
+every sample ends up with two directly comparable results:
+`results/<sample>/lowest_contig/` and `results/<sample>/highest_busco/`.
+Neither is automatically "more correct"; compare their `summary.txt` files
+(contig count, N50, total length vs. expected genome size, and BUSCO score)
+and use your judgement.
 
 ### `dorado_correct` vs hifiasm's own correction
 `hifiasm --ont` does its own ONT-specific read correction, and that's the
@@ -180,8 +197,8 @@ snakemake --profile profile
 explicitly instead of running bare `snakemake --profile profile`, e.g.:
 ```
 snakemake --profile profile \
-  results/my_sample/summary.txt \
-  results/my_sample/my_sample_final.fasta
+  results/my_sample/lowest_contig/summary.txt \
+  results/my_sample/highest_busco/summary.txt
 ```
 
 **If a run dies and leaves the working directory locked:**
@@ -197,23 +214,38 @@ want to inspect. Re-run with `--notemp` to keep everything while debugging.
 
 ```
 results/<sample>/
-  summary.txt          # human-readable: reads, grid winner, coverage, BUSCO
-  assembly_stats.tsv    # seqkit stats for every grid candidate + the winner
-  read_stats.tsv         # seqkit stats for the raw (and trimmed) reads
-  <sample>_final.fasta   # THE deliverable -- polished if a BAM was available
+  read_stats.tsv                      # seqkit stats for the raw (and trimmed) reads -- shared, sample-level
+
+  lowest_contig/                      # winner selected by fewest contigs
+    summary.txt                       #   human-readable: reads, grid, coverage, BUSCO
+    assembly_stats.tsv                #   seqkit stats for every grid candidate + this winner
+    <sample>_lowest_contig_final.fasta  # THE deliverable for this selector -- polished if a BAM was available
+
+  highest_busco/                      # winner selected by highest BUSCO completeness
+    summary.txt
+    assembly_stats.tsv
+    <sample>_highest_busco_final.fasta  # THE deliverable for this selector
 
 logs/                   # per-rule, per-sample logs
 snake_log/               # the Snakemake orchestrator's own run logs
 ```
 
+Both selectors run all the way through independently (see "The
+read-filtering grid" above) -- there is no single "the" final assembly,
+there are two: compare `lowest_contig/summary.txt` and
+`highest_busco/summary.txt` and pick whichever actually looks better for
+your genome.
+
 `data/` holds intermediates. Most of it is `temp()` and gets cleaned up
 automatically once nothing downstream needs it any more -- don't expect
-`data/contig/`, `data/dorado_polish/`, or `data/busco/*/BUSCO`'s full tables
-to persist after a run finishes; that data is either duplicated in
-`results/` already or (for BUSCO's full tables/logs) considered disposable
-once the short summary is captured in `summary.txt`. The two things that
-persist deliberately: `data/dorado_basecall/<sample>.bam` (`protected()` --
-basecalling is expensive to redo) and, if a sample sets `organelle:`,
+`data/contig/`, `data/dorado_polish/`, `data/busco_grid/*/BUSCO` (BUSCO on
+every grid cell, used only for the highest_busco selection), or
+`data/busco/*/BUSCO`'s full tables to persist after a run finishes; that
+data is either duplicated in `results/` already or (for BUSCO's full
+tables/logs) considered disposable once the short summary is captured in
+`summary.txt`. The two things that persist deliberately:
+`data/dorado_basecall/<sample>.bam` (`protected()` -- basecalling is
+expensive to redo) and, if a sample sets `organelle:`,
 `data/getorganelle/<sample>/Mitochondria` (there's no `results/` copy of
 that path yet -- it's the only copy of the organelle assembly, so it's
 *not* `temp()`).
@@ -226,7 +258,10 @@ that path yet -- it's the only copy of the organelle assembly, so it's
   roughly the order they run in the DAG. Each has a header comment
   explaining what it does and when it's reached.
 - `workflow/envs/*.yml` -- one conda env per tool.
-- `workflow/scripts/summarize.py` -- builds `results/<sample>/summary.txt`.
+- `workflow/scripts/summarize.py` -- builds
+  `results/<sample>/<selector>/summary.txt`.
+- `workflow/scripts/pick_highest_busco.py` -- picks the `highest_busco`
+  selector's grid winner (see `rule highest_busco`).
 - `config/config.yaml`, `profile/config.yaml` -- see above.
 - `scripts/` -- separate, standalone scripts used to make the paper's
   figures (phylogeny, circos plots, telomere/mitochondria checks, ...).
