@@ -80,9 +80,15 @@ best_len = as_int(best.get("sum_len")) if best else 0
 
 coverage = (raw_bases / best_len) if best_len else 0.0
 
+selector = snakemake.params.selector
+selector_desc = {
+    "lowest_contig": "fewest contigs",
+    "highest_busco": "highest BUSCO completeness",
+}.get(selector, selector)
+
 out = []
 out.append("=" * 70)
-out.append(f"  SUMMARY: {snakemake.params.sample}")
+out.append(f"  SUMMARY: {snakemake.params.sample}  (selector: {selector} -- {selector_desc})")
 out.append("=" * 70)
 out.append("")
 out.append(f"Polished          : {'yes' if snakemake.params.polished else 'no (FASTQ entry point)'}")
@@ -103,7 +109,7 @@ out.append("")
 n_candidates = sum(1 for row in asm if "contig/" not in row.get("file", ""))
 
 out.append("-" * 70)
-out.append("ASSEMBLIES  (one per min_q/min_len grid cell; lowest contig count is selected)")
+out.append(f"ASSEMBLIES  (one per min_q/min_len grid cell; {selector_desc} is selected)")
 out.append("-" * 70)
 if n_candidates == 1:
     out.append("Note: only 1 grid cell was configured for this sample -- selected")

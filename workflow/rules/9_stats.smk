@@ -47,9 +47,9 @@ def assembly_stats_candidates(wildcards):
 rule assembly_stats:
     input:
         candidates = assembly_stats_candidates,
-        best = "data/contig/{input}_lowest_contig_file.fa",
+        best = "data/contig/{input}_{selector}_file.fa",
     output:
-        a = "results/{input}/assembly_stats.tsv"
+        a = "results/{input}/{selector}/assembly_stats.tsv"
     threads:
         4
     resources:
@@ -64,12 +64,13 @@ rule assembly_stats:
 
 
 rule final_genome:
-    """The deliverable: polished where possible, best raw assembly otherwise."""
+    """The deliverable: polished where possible, best raw assembly otherwise --
+    one per selector (lowest_contig / highest_busco, see Snakefile SELECTORS)."""
     input:
-        a = lambda w: (f"data/dorado_polish/{w.input}.fasta" if has_bam(w.input)
-                       else f"data/contig/{w.input}_lowest_contig_file.fa")
+        a = lambda w: (f"data/dorado_polish/{w.input}_{w.selector}.fasta" if has_bam(w.input)
+                       else f"data/contig/{w.input}_{w.selector}_file.fa")
     output:
-        a = protected("results/{input}/{input}_final.fasta")
+        a = protected("results/{input}/{selector}/{input}_{selector}_final.fasta")
     threads:
         1
     resources:
@@ -84,13 +85,14 @@ rule final_genome:
 rule summary:
     input:
         reads = "results/{input}/read_stats.tsv",
-        asm   = "results/{input}/assembly_stats.tsv",
-        final = "results/{input}/{input}_final.fasta",
-        busco = "data/busco/{input}/BUSCO",
+        asm   = "results/{input}/{selector}/assembly_stats.tsv",
+        final = "results/{input}/{selector}/{input}_{selector}_final.fasta",
+        busco = "data/busco/{input}_{selector}/BUSCO",
     output:
-        a = "results/{input}/summary.txt"
+        a = "results/{input}/{selector}/summary.txt"
     params:
         sample   = lambda w: w.input,
+        selector = lambda w: w.selector,
         polished = lambda w: has_bam(w.input),
         lineage  = lambda w: busco_lineage(w.input),
     threads:

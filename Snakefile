@@ -48,11 +48,22 @@ for _name, _s in SAMPLES.items():
 # minq/minlen identify one cell of the read-filtering grid (see config.yaml
 # `filter:`); block identifies one dorado-correct chunk. Constraining them to
 # digits keeps "{input}_q10_l5000" parsing as input="{input}", minq="10",
-# minlen="5000" instead of Snakemake trying every split.
+# minlen="5000" instead of Snakemake trying every split. `selector` picks
+# which grid-winner strategy a downstream result came from (see SELECTORS
+# below and 6_01_highest_busco.smk).
 wildcard_constraints:
-    minq   = r"\d+",
-    minlen = r"\d+",
-    block  = r"\d+",
+    minq     = r"\d+",
+    minlen   = r"\d+",
+    block    = r"\d+",
+    selector = r"lowest_contig|highest_busco",
+
+# Two independent ways to pick a winner across a sample's (min_q, min_len)
+# grid: fewest contigs (contig_count, 6_00) or highest BUSCO completeness
+# (highest_busco, 6_01). Both go through the same rest of the pipeline
+# (polish if possible, BUSCO on the final assembly, stats, results/) --
+# see final_targets() below -- so every sample ends up with two parallel
+# results/{sample}/<selector>/ deliverables to compare.
+SELECTORS = ["lowest_contig", "highest_busco"]
 
 def stype(name):
     return SAMPLES[name]["type"]
@@ -258,6 +269,7 @@ include: "workflow/rules/3_seqtk_fasta_to_fastq.smk"
 include: "workflow/rules/5_hifiasm.smk"
 include: "workflow/rules/6_0_fga_to_fa.smk"
 include: "workflow/rules/6_00_lowest_contig_count.smk"
+include: "workflow/rules/6_01_highest_busco.smk"
 include: "workflow/rules/6_1_dorado_align.smk"
 include: "workflow/rules/6_3_dorado_polish.smk"
 include: "workflow/rules/7_BUSCO.smk"
@@ -271,14 +283,15 @@ include: "workflow/rules/9_stats.smk"
 def final_targets():
     t = []
     for n in SAMPLES:
-        # Final assembly: polished where a BAM exists, otherwise the best raw one
-        if has_bam(n):
-            t.append(f"data/dorado_polish/{n}.fasta")
-        else:
-            t.append(f"data/contig/{n}_lowest_contig_file.fa")
-        t.append(f"data/busco/{n}/BUSCO")
-        t.append(f"results/{n}/summary.txt")
-        t.append(f"results/{n}/{n}_final.fasta")
+        for sel in SELECTORS:
+            # Final assembly: polished where a BAM exists, otherwise the best raw one
+            if has_bam(n):
+                t.append(f"data/dorado_polish/{n}_{sel}.fasta")
+            else:
+                t.append(f"data/contig/{n}_{sel}_file.fa")
+            t.append(f"data/busco/{n}_{sel}/BUSCO")
+            t.append(f"results/{n}/{sel}/summary.txt")
+            t.append(f"results/{n}/{sel}/{n}_{sel}_final.fasta")
         if wants_organelle(n):
             t.append(f"data/getorganelle/{n}/Mitochondria")
     return t
