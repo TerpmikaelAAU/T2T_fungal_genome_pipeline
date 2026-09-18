@@ -29,6 +29,8 @@ rule read_stats:
     resources:
         mem_mb = scaled_mem(0.1, 8000),
         runtime = 120,
+    container:
+        "docker://quay.io/biocontainers/seqkit:2.13.0--he881be0_0"
     conda:
         "../envs/seqkit.yml"
     shell:
@@ -55,6 +57,8 @@ rule assembly_stats:
     resources:
         mem_mb = 16000,
         runtime = 120,
+    container:
+        "docker://quay.io/biocontainers/seqkit:2.13.0--he881be0_0"
     conda:
         "../envs/seqkit.yml"
     shell:

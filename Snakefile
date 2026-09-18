@@ -43,7 +43,14 @@ for _name, _s in SAMPLES.items():
             f"Sample '{_name}': type '{_s['type']}' is not one of {sorted(VALID_TYPES)}."
         )
     if not os.path.isabs(_s["path"]):
-        raise WorkflowError(f"Sample '{_name}': 'path' must be absolute.")
+        # A relative path (e.g. "example_data/...") resolves against this
+        # repo's root, so the bundled example data works after any clone.
+        _s["path"] = os.path.join(workflow.basedir, _s["path"])
+    if _s.get("organelle") and not _s.get("organelle_type"):
+        raise WorkflowError(
+            f"Sample '{_name}': organelle: true requires 'organelle_type' "
+            f"(e.g. fungus_mt) -- see config/config.yaml."
+        )
 
 # minq/minlen identify one cell of the read-filtering grid (see config.yaml
 # `filter:`); block identifies one dorado-correct chunk. Constraining them to
@@ -78,11 +85,20 @@ def subsampled(name):
 def busco_lineage(name):
     return SAMPLES[name].get("busco_lineage", "fungi_odb12")
 
-def organelle_db(name):
-    return SAMPLES[name].get("organelle", "none")
-
 def wants_organelle(name):
-    return str(organelle_db(name)).lower() != "none"
+    return bool(SAMPLES[name].get("organelle", False))
+
+def organelle_type(name):
+    """GetOrganelle's -F organelle-type flag; required when organelle: true."""
+    return SAMPLES[name]["organelle_type"]
+
+def wants_dorado_correct(name):
+    """Per-sample override of the global dorado_correct.enabled default."""
+    return bool(SAMPLES[name].get("dorado_correct", config["dorado_correct"]["enabled"]))
+
+def wants_ultralong(name):
+    """Per-sample override of the global ultralong.enabled default."""
+    return bool(SAMPLES[name].get("ultralong", config["ultralong"]["enabled"]))
 
 def filter_grid(name):
     """This sample's (min_q, min_len) grid: a per-sample override if given,
@@ -91,8 +107,18 @@ def filter_grid(name):
     config['filter'] is shared by every sample unless overridden here, so
     widening the grid for one sample used to silently change what
     contig_count/assembly_stats required from every other sample too --
-    including combinations never actually run for them."""
-    return SAMPLES[name].get("filter", config["filter"])
+    including combinations never actually run for them.
+
+    When dorado_correct is on for this sample, dorado correct itself always
+    runs once on a single fixed (min_q, min_len) cutoff -- see
+    config.yaml `dorado_correct.min_q`/`min_len` -- independent of this
+    grid. AFTER correction, min_len is swept again (min_q isn't: correction
+    discards real quality, so there's nothing left to filter on); min_q here
+    is just dorado_correct's fixed value, kept as a folder-naming tag."""
+    grid = SAMPLES[name].get("filter", config["filter"])
+    if wants_dorado_correct(name):
+        return {"min_q": [config["dorado_correct"]["min_q"]], "min_len": grid["min_len"]}
+    return grid
 
 # --- input resolvers used by the rules -------------------------------------
 def get_bam(wildcards):
@@ -126,33 +152,50 @@ def get_trimmed_fastq(wildcards):
             else get_raw_fastq(wildcards))
 
 def get_correct_input(wildcards):
-    """Reads fed to dorado correct for one (sample, min_q, min_len) grid cell,
-    coverage-capped only if the user asked."""
+    """Reads for one (sample, min_q, min_len) grid cell, coverage-capped
+    only if the user asked. Used directly as hifiasm's input when
+    dorado_correct is off for this sample."""
     n, q, l = wildcards.input, wildcards.minq, wildcards.minlen
     return (f"data/rasusa/Coverage/{n}_q{q}_l{l}.fastq" if subsampled(n)
             else f"data/chopper/{n}_q{q}_l{l}.fastq")
 
-def get_assembly_input(wildcards):
-    """FASTQ fed to hifiasm for one grid cell: corrected (then refastq'd) if
-    dorado_correct is enabled, else the chopper grid output directly --
-    hifiasm --ont does its own ONT-specific correction, and on at least one
-    large low-N50 dataset dorado correct discarded the large majority of
-    reads and made the assembly worse (see config.yaml `dorado_correct`),
-    so that's off by default."""
+def get_dorado_correct_input(wildcards):
+    """Reads fed to dorado correct: this sample's full read set, filtered
+    ONCE at dorado_correct's own fixed (min_q, min_len) cutoff -- see
+    config.yaml -- independent of the assembly grid. Coverage-capped only
+    if the user asked."""
     n = wildcards.input
-    if config["dorado_correct"]["enabled"]:
-        return f"data/seqtk/fasta_to_fastq/{n}_q{wildcards.minq}_l{wildcards.minlen}.fastq"
+    dc = config["dorado_correct"]
+    q, l = dc["min_q"], dc["min_len"]
+    return (f"data/rasusa/Coverage/{n}_q{q}_l{l}.fastq" if subsampled(n)
+            else f"data/chopper/{n}_q{q}_l{l}.fastq")
+
+def get_assembly_input(wildcards):
+    """FASTQ fed to hifiasm for one grid cell: hifiasm --ont does its own
+    ONT-specific correction, and on at least one large low-N50 dataset
+    dorado correct discarded the large majority of reads and made the
+    assembly worse (see config.yaml `dorado_correct`), so that's off by
+    default.
+
+    When dorado_correct IS on for this sample, hifiasm instead gets the
+    single dorado-corrected read set, filtered again by min_len only (see
+    3_2_length_filter_corrected.smk) -- min_q plays no further part once
+    correction has discarded the reads' real quality."""
+    n = wildcards.input
+    if wants_dorado_correct(n):
+        return f"data/dorado_filtered/{n}_l{wildcards.minlen}.fastq"
     return get_correct_input(wildcards)
 
 def get_ultralong_input(wildcards):
     """hifiasm's --ul input: a fixed cutoff independent of the filter grid,
-    reusing the same chopper rule. Only built when ultralong.enabled."""
+    reusing the same chopper rule. Only built when ultralong is enabled for
+    this sample."""
     u = config["ultralong"]
     return f"data/chopper/{wildcards.input}_q{u['min_q']}_l{u['min_len']}.fastq"
 
 def hifiasm_inputs(wildcards):
     d = {"a": get_assembly_input(wildcards)}
-    if config["ultralong"]["enabled"]:
+    if wants_ultralong(wildcards.input):
         d["b"] = get_ultralong_input(wildcards)
     return d
 
@@ -266,6 +309,7 @@ include: "workflow/rules/2_flye.smk"
 include: "workflow/rules/2_rasusa.smk"
 include: "workflow/rules/3_dorado_correct.smk"
 include: "workflow/rules/3_seqtk_fasta_to_fastq.smk"
+include: "workflow/rules/3_2_length_filter_corrected.smk"
 include: "workflow/rules/5_hifiasm.smk"
 include: "workflow/rules/6_0_fga_to_fa.smk"
 include: "workflow/rules/6_00_lowest_contig_count.smk"
