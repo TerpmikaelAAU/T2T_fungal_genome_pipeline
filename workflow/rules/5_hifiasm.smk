@@ -32,9 +32,11 @@ rule hifiasm:
         mem_mb=scaled_mem(4.0, 64000),
         runtime=scaled_time(0.3, 720),
     params:
-        ul_flag    = lambda w, input: f"--ul {input.b}" if config["ultralong"]["enabled"] else "",
+        ul_flag    = lambda w, input: f"--ul {input.b}" if wants_ultralong(w.input) else "",
         min_bytes  = int(config.get("hifiasm_min_input_mb", 1)) * 1_000_000,
         prefix     = lambda w: f"data/hifiasm/{w.input}_q{w.minq}_l{w.minlen}/prefix",
+    container:
+        "docker://quay.io/biocontainers/hifiasm:0.25.0--h5ca1c30_0"
     conda:
         "../envs/hifiasm.yml"
     shell:

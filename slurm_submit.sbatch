@@ -2,7 +2,7 @@
 #SBATCH --job-name=snake_assembly_sub
 #SBATCH --output=snake_log/job_%j_%x.out
 #SBATCH --cpus-per-task=1
-#SBATCH --mem=1G
+#SBATCH --mem=4G
 #SBATCH --time=7-00:00:00
 #SBATCH --mail-type=END,FAIL,TIME_LIMIT_90
 #SBATCH --mail-user=mter@bio.aau.dk
@@ -15,12 +15,10 @@ mkdir -p snake_log
 conda activate snakemake_run_v9
 
 # Snakemake itself needs almost nothing: it submits each rule as its own
-# SLURM job via the executor plugin. 1 CPU + 1G is plenty.
+# SLURM job via the executor plugin. 1 CPU + 4G is plenty.
 
-### FIRST RUN ONLY: build all conda envs, then comment this out ###
-#snakemake --profile profile --conda-create-envs-only
-
-### MAIN WORKFLOW: uncomment after the envs exist ###
+# No setup step needed -- each rule downloads its own container the first
+# time it runs (see README "Containers").
 snakemake --profile profile
 
 # If the workflow crashed and the directory is locked, run once with --unlock,

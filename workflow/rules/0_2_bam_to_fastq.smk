@@ -11,6 +11,8 @@ rule bam_to_fastq:
     resources:
         mem_mb=resources["chopper"]["mem_mb"],
         runtime=resources["chopper"]["runtime"]
+    container:
+        "docker://quay.io/biocontainers/samtools:1.24--h9dcdb79_1"
     conda:
         "../envs/samtools.yml"
     shell:

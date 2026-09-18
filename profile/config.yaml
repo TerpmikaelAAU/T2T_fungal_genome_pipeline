@@ -3,9 +3,10 @@
 # hand-written sbatch command and no cluster-status polling script any more.
 executor: slurm
 
-# Replaces the old `use-conda: True`
+# Each rule runs in a container (see README "Containers"). Keep "apptainer"
+# as the only entry -- adding "conda" here breaks the containers.
 software-deployment-method:
-  - conda
+  - apptainer
 
 # Defaults for any rule that does not set them itself.
 # NOTE: `runtime` is an INTEGER NUMBER OF MINUTES in Snakemake >=8.

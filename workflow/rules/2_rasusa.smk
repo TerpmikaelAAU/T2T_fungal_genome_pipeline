@@ -14,6 +14,8 @@ rule rasusa:
     resources:
         mem_mb=resources["rasusa"]["mem_mb"],
         runtime=resources["rasusa"]["runtime"]
+    container:
+        "docker://quay.io/biocontainers/rasusa:5.1.0--hfa8f182_0"
     conda:
         "../envs/rasusa.yml"
     log:

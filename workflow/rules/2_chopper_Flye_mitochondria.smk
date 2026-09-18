@@ -12,6 +12,8 @@ rule chopper_flye:
     resources:
         mem_mb=scaled_mem(0.15, 8000),
         runtime=resources["chopper"]["runtime"]
+    container:
+        "docker://quay.io/biocontainers/chopper:0.13.0--h7f49ad2_0"
     conda:
         "../envs/chopper.yml"
     shell:

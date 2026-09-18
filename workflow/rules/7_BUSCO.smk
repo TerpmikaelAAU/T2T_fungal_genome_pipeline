@@ -24,6 +24,8 @@ rule busco:
         mem_mb=resources["busco"]["mem_mb"],
         runtime=resources["busco"]["runtime"],
         #
+    container:
+        "docker://quay.io/biocontainers/busco:6.1.0--pyhdfd78af_2"
     conda:
        "../envs/BUSCO.yml"
     shell:

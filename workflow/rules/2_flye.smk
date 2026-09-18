@@ -15,6 +15,8 @@ rule flye:
     resources:
         mem_mb=resources["flye"]["mem_mb"],
         runtime=resources["flye"]["runtime"],
+    container:
+        "docker://quay.io/biocontainers/flye:2.9.6--py312h734f728_1"
     conda:
         "../envs/Flye.yml"
     shell:
