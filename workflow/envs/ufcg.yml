@@ -1,0 +1,9 @@
+name: ufcg
+channels:
+  - conda-forge
+  - bioconda
+dependencies:
+  - ufcg=1.0.6
+# The rules run UFCG from the official docker://endix1029/ufcg:v1.0.6 image
+# instead: this conda package does not include UFCG's core gene database
+# (fetched with `ufcg download -t minimum` after installing).

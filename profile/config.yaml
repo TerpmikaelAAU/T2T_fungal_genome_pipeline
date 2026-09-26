@@ -23,6 +23,12 @@ max-threads: 64
 # HARD CAP on how many jobs can be in SLURM at once. Even if a checkpoint
 # expands into hundreds of blocks, never more than this many are submitted.
 jobs: 30
+# Of those 30, at most this many may be phylogeny reference-genome profiling
+# jobs (rule ufcg_profile_reference, one per NCBI genus -- thousands of them,
+# all ready from the very start). Keeps them from taking every slot and
+# holding up the assemblies; they fill the remaining slots in between.
+resources:
+  ufcg_reference_slots: 10
 # Threads for rules that run locally (none currently do, but this bounds it).
 local-cores: 1
 # Ceph/NFS can lag between a job finishing and its output being visible on
