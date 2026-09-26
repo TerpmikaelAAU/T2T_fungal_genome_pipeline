@@ -52,9 +52,16 @@ rule ufcg_profile_reference:
         work = "data/phylogeny/ufcg_work/references/{ref}",
     threads:
         8
+    # Thousands of these are ready from the start. Capped by the profile's
+    # global `ufcg_reference_slots`, and ranked below the assembly jobs
+    # (priority 0 is the default for every other rule), so the assemblies
+    # always go first.
+    priority:
+        -10
     resources:
         mem_mb  = resources["ufcg_profile"]["mem_mb"],
         runtime = resources["ufcg_profile"]["runtime"],
+        ufcg_reference_slots = 1,
     log:
         "logs/phylogeny/ufcg_profile/{ref}.log"
     container:
