@@ -3,7 +3,7 @@
 # ============================================================================
 # Downloads ONE representative genome for every genus under
 # config['phylogeny']['taxon'] (default: Fungi) with NCBI datasets. These are
-# the backbone of the tree built in 10_phylogeny.smk, which places each
+# the backbone of the UFCG tree built in 10_phylogeny.smk, which places each
 # sample's two final assemblies (lowest_contig + highest_busco) among them.
 #
 # None of these rules depend on any sample, so Snakemake schedules them
@@ -18,7 +18,9 @@
 #                                      pick_genus_representatives.py for the
 #                                      ranking)
 #   3. download_genus_representatives -- fetch just those, renamed to
-#                                      readable tree tip labels
+#                                      readable tree tip labels. A checkpoint:
+#                                      10_phylogeny.smk profiles each genome
+#                                      that actually arrived as its own job.
 #
 # DISK: all fungal genera is a few thousand genomes -- expect ~100 GB in
 # data/phylogeny/reference_genomes/. It is kept (not temp()) so the download
@@ -88,7 +90,7 @@ rule pick_genus_representatives:
         "../scripts/pick_genus_representatives.py"
 
 
-rule download_genus_representatives:
+checkpoint download_genus_representatives:
     input:
         table = "data/phylogeny/genus_representatives.tsv",
     output:
@@ -127,9 +129,9 @@ rule download_genus_representatives:
         unzip -q -o {params.tmp}/representatives.zip -d {params.tmp}
         datasets rehydrate --directory {params.tmp} --max-workers {threads} 2>> {log}
 
-        # Rename <accession>/*.fna to <tip label>.fna -- mashtree uses the file
-        # name as the tip label. Genomes NCBI couldn't serve are skipped with
-        # a warning instead of failing the whole set.
+        # Rename <accession>/*.fna to <tip label>.fna -- UFCG uses the file
+        # name (minus .fna) as the tip label. Genomes NCBI couldn't serve are
+        # skipped with a warning instead of failing the whole set.
         head -n 1 {input.table} > {output.table}
         tail -n +2 {input.table} | while IFS=$'\\t' read -r label acc rest; do
             fna=$(find {params.tmp}/ncbi_dataset/data/"$acc" -name '*.fna' 2>/dev/null | head -n 1 || true)

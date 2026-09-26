@@ -1,6 +1,6 @@
-name: mashtree
+name: fasttree
 channels:
   - conda-forge
   - bioconda
 dependencies:
-  - mashtree=1.4.6
+  - fasttree=2.2.0
