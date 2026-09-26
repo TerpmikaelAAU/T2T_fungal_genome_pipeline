@@ -23,7 +23,8 @@ configfile: "config/config.yaml"
 #   5. Rule includes          -- one file per pipeline stage, under
 #                                workflow/rules/, numbered in DAG order
 #   6. Targets (`rule all`)   -- assembled per sample according to its entry
-#                                point and options (see final_targets())
+#                                point and options (see final_targets()),
+#                                plus the optional all-sample phylogeny
 #
 # See config/config.yaml for what's configurable and README.md for how to
 # run this.
@@ -283,6 +284,9 @@ resources = {
     "correct_overlap":  {"mem_mb": 250000, "runtime": 720},
     "correct_infer":    {"mem_mb": 60000,  "runtime": 480},
     "correct_merge":    {"mem_mb": 5000,   "runtime": 60},
+    # phylogeny (0_4_ncbi_genus_representatives.smk, 10_phylogeny.smk)
+    "ncbi_datasets":    {"mem_mb": 8000,   "runtime": 2880},  # a few thousand genomes, ~100 GB
+    "mashtree":         {"mem_mb": 64000,  "runtime": 2880},
 }
 
 # GPU request for BioCloud's single A10 node (bio-node10).
@@ -302,6 +306,7 @@ include: "workflow/rules/0_0_get_dorado.smk"
 include: "workflow/rules/0_1_basecall.smk"
 include: "workflow/rules/0_2_bam_to_fastq.smk"
 include: "workflow/rules/0_3_decompress.smk"
+include: "workflow/rules/0_4_ncbi_genus_representatives.smk"
 include: "workflow/rules/1_porechop_api.smk"
 include: "workflow/rules/2_chopper.smk"
 include: "workflow/rules/2_chopper_Flye_mitochondria.smk"
@@ -320,10 +325,16 @@ include: "workflow/rules/7_BUSCO.smk"
 include: "workflow/rules/7_getorganelle_database.smk"
 include: "workflow/rules/7_getorganelle.smk"
 include: "workflow/rules/9_stats.smk"
+include: "workflow/rules/10_phylogeny.smk"
 
 # ============================================================================
 #  Targets -- built per sample according to its entry point
 # ============================================================================
+def wants_phylogeny():
+    """One tree over ALL samples' final assemblies + one NCBI genome per genus
+    (see 10_phylogeny.smk). Global, not per sample."""
+    return bool(config.get("phylogeny", {}).get("enabled", False))
+
 def final_targets():
     t = []
     for n in SAMPLES:
@@ -338,6 +349,8 @@ def final_targets():
             t.append(f"results/{n}/{sel}/{n}_{sel}_final.fasta")
         if wants_organelle(n):
             t.append(f"data/getorganelle/{n}/Mitochondria")
+    if wants_phylogeny():
+        t.append("results/phylogeny/genus_tree.nwk")
     return t
 
 rule all:
