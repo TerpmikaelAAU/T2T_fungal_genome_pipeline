@@ -286,7 +286,9 @@ resources = {
     "correct_merge":    {"mem_mb": 5000,   "runtime": 60},
     # phylogeny (0_4_ncbi_genus_representatives.smk, 10_phylogeny.smk)
     "ncbi_datasets":    {"mem_mb": 8000,   "runtime": 2880},  # a few thousand genomes, ~100 GB
-    "mashtree":         {"mem_mb": 64000,  "runtime": 2880},
+    "ufcg_profile":     {"mem_mb": 16000,  "runtime": 240},   # per genome
+    "ufcg_align":       {"mem_mb": 64000,  "runtime": 2880},
+    "fasttree":         {"mem_mb": 64000,  "runtime": 2880},
 }
 
 # GPU request for BioCloud's single A10 node (bio-node10).
@@ -330,10 +332,20 @@ include: "workflow/rules/10_phylogeny.smk"
 # ============================================================================
 #  Targets -- built per sample according to its entry point
 # ============================================================================
+EXAMPLE_DATA = os.path.join(workflow.basedir, "example_data")
+
+def only_example_data():
+    """True when every configured sample is bundled example_data/ -- fake
+    reads, nothing worth placing in a tree."""
+    return all(s["path"].startswith(EXAMPLE_DATA + os.sep) for s in SAMPLES.values())
+
 def wants_phylogeny():
     """One tree over ALL samples' final assemblies + one NCBI genome per genus
-    (see 10_phylogeny.smk). Global, not per sample."""
-    return bool(config.get("phylogeny", {}).get("enabled", False))
+    (see 10_phylogeny.smk). Global, not per sample. Skipped automatically for
+    an example-data-only run, which would otherwise start the ~100 GB NCBI
+    download just to place fake assemblies."""
+    return (bool(config.get("phylogeny", {}).get("enabled", False))
+            and not only_example_data())
 
 def final_targets():
     t = []

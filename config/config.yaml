@@ -139,18 +139,20 @@ filter:
 # ============================================================================
 #  Phylogeny
 # ============================================================================
-# One Mash-distance tree (mashtree, as in the BAGS pipeline) placing every
+# One protein tree (UFCG core genes -> MAFFT -> FastTree) placing every
 # sample's two final assemblies (lowest_contig + highest_busco) among ONE
-# NCBI genome per genus of `taxon`. The NCBI download needs no samples, so
-# it runs in parallel with everything else from the start; only the tree
-# itself waits for the assemblies. Output: results/phylogeny/.
+# NCBI genome per genus of `taxon`. The NCBI download and profiling of those
+# reference genomes need no samples, so they run in parallel with everything
+# else from the start; only the samples' profiles and the tree itself wait
+# for the assemblies. Output: results/phylogeny/.
 #
-# The full Fungi download is a few thousand genomes, ~100 GB, and takes
-# hours -- set enabled: false for a quick test run on the example data.
-# It is only downloaded once (data/phylogeny/reference_genomes/); delete that
-# folder and data/phylogeny/ncbi/ to re-download, e.g. after changing taxon.
+# Cost, all of Fungi: a few thousand genomes (~100 GB download) and one UFCG
+# profile job per genome. Both are kept, so they only ever run once. Delete
+# data/phylogeny/ to start over, e.g. after changing taxon.
+#
+# Skipped automatically when every sample is bundled example_data/.
 phylogeny:
   enabled: true
-  # Any NCBI taxon name or taxid, e.g. "Fungi", "Ascomycota", "Eurotiomycetes"
-  # -- or "Oomycota" for Phytophthora & co., which are not fungi.
+  # Any NCBI taxon name or taxid, e.g. "Fungi", "Ascomycota", "Eurotiomycetes".
+  # UFCG's core genes are fungal -- this tree doesn't suit oomycetes.
   taxon: "Fungi"
