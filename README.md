@@ -1,5 +1,7 @@
 # T2T fungal genome assembly pipeline
 
+> **This is a work in progress.**
+
 ## Article
 Paper: "Gapless near Telomer-to-Telomer Assembly of Neurospora intermedia, Aspergillus oryzae, and Trichoderma asperellum from Nanopore Simplex Reads"
 https://doi.org/10.3390/jof11100701
