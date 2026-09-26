@@ -176,5 +176,56 @@ if "telomeres" in snakemake.input.keys():
     out.append(f"  (per contig: {snakemake.input.telomeres})")
     out.append("")
 
+# --- contamination (only with `contamination: enabled: true`) -------------
+if "tiara" in snakemake.input.keys():
+    lengths, name = {}, None
+    with open(snakemake.input.final) as fh:
+        for line in fh:
+            if line.startswith(">"):
+                name = line[1:].split()[0]
+                lengths[name] = 0
+            elif name is not None:
+                lengths[name] += len(line.strip())
+    classes = {}  # class -> [contigs, bp]
+    prokaryotic = []
+    with open(snakemake.input.tiara) as fh:
+        next(fh, None)
+        for line in fh:
+            parts = line.rstrip("\n").split("\t")
+            if len(parts) < 3:
+                continue
+            contig, first, second = parts[:3]
+            # organelle -> mitochondrion/plastid; everything else by stage 1
+            cls = second if first == "organelle" and second != "n/a" else first
+            bp = lengths.pop(contig, 0)
+            classes.setdefault(cls, [0, 0])
+            classes[cls][0] += 1
+            classes[cls][1] += bp
+            if first in ("bacteria", "archaea", "prokarya"):
+                prokaryotic.append((bp, contig, first))
+    if lengths:  # contigs Tiara skipped as too short
+        classes["not classified (short)"] = [len(lengths), sum(lengths.values())]
+    out.append("-" * 70)
+    out.append("CONTAMINATION  (Tiara; contigs < "
+               f"{snakemake.params.tiara_min_len:,} bp aren't classified)")
+    out.append("-" * 70)
+    out.append(f"{'class':<32}{'contigs':>12}{'bp':>16}")
+    for cls, (n, bp) in sorted(classes.items(), key=lambda kv: -kv[1][1]):
+        out.append(f"{cls:<32}{n:>12,}{bp:>16,}")
+    if prokaryotic:
+        prokaryotic.sort(reverse=True)
+        out.append("")
+        out.append(f"WARNING: {len(prokaryotic)} contig(s) classified as prokaryotic "
+                   f"({sum(p[0] for p in prokaryotic):,} bp) -- possible contamination:")
+        for bp, contig, cls in prokaryotic[:20]:
+            out.append(f"  {contig:<30}{bp:>14,} bp  {cls}")
+        if len(prokaryotic) > 20:
+            out.append(f"  ... and {len(prokaryotic) - 20} more")
+    else:
+        out.append("")
+        out.append("No contigs classified as bacteria or archaea.")
+    out.append(f"  (per contig: {snakemake.input.tiara})")
+    out.append("")
+
 with open(snakemake.output.a, "w") as fh:
     fh.write("\n".join(out) + "\n")

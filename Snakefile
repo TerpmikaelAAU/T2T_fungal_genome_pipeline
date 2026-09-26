@@ -76,6 +76,11 @@ TELO = config.get("telomere", {})
 TELOMERE_ON = bool(TELO.get("enabled", False))
 TELO_RERUN = TELOMERE_ON and bool(TELO.get("rerun_hifiasm", True))
 
+# Contamination screen (config `contamination:`): Tiara on every final
+# assembly, see 8_contamination_tiara.smk.
+CONTAM = config.get("contamination", {})
+CONTAMINATION_ON = bool(CONTAM.get("enabled", False))
+
 # Independent ways to pick a winner across a sample's (min_q, min_len)
 # grid: fewest contigs (contig_count, 6_00), highest BUSCO completeness
 # (highest_busco, 6_01) and, with telomeres on, most T2T contigs (most_t2t,
@@ -355,6 +360,7 @@ include: "workflow/rules/6_3_dorado_polish.smk"
 include: "workflow/rules/7_BUSCO.smk"
 include: "workflow/rules/7_getorganelle_database.smk"
 include: "workflow/rules/7_getorganelle.smk"
+include: "workflow/rules/8_contamination_tiara.smk"
 include: "workflow/rules/9_stats.smk"
 include: "workflow/rules/9_1_telomere_report.smk"
 include: "workflow/rules/10_phylogeny.smk"
@@ -392,6 +398,8 @@ def final_targets():
             t.append(f"results/{n}/{sel}/{n}_{sel}_final.fasta")
             if TELOMERE_ON:
                 t.append(f"results/{n}/{sel}/telomeres.tsv")
+            if CONTAMINATION_ON:
+                t.append(f"results/{n}/{sel}/contamination/tiara.tsv")
         if wants_organelle(n):
             t.append(f"data/getorganelle/{n}/Mitochondria")
     if wants_phylogeny():
