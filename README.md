@@ -201,8 +201,11 @@ per genome, `ufcg align` (MAFFT) + concatenation, then FastTree (LG+gamma).
 - **Cost:** all of Fungi is a few thousand genomes, **~100 GB** to
   download, and one UFCG profile job per genome. Everything under
   `data/phylogeny/` is kept so this only ever happens once; delete that
-  folder to start over (e.g. after changing `taxon`). The profile jobs share
-  the profile's `jobs:` cap with the assembly jobs.
+  folder to start over (e.g. after changing `taxon`).
+- The reference profile jobs never hold up the assemblies: they rank below
+  every other job, and at most `ufcg_reference_slots` (10, in
+  `profile/config.yaml`) of the profile's 30 SLURM job slots run them at
+  once.
 - A genome UFCG can't profile is left out of the tree with a warning (see
   `logs/phylogeny/`) rather than failing the run.
 - **Skipped automatically** when every sample is bundled `example_data/`.
