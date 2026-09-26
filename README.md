@@ -23,6 +23,8 @@ FASTQ), the pipeline:
 4. Polishes each winner with `dorado polish` where a BAM is available.
 5. Runs BUSCO on each winner and reports read/assembly stats and coverage.
 6. Optionally recovers an organelle genome via `flye` + `GetOrganelle`.
+7. Places every sample's two final assemblies in a phylogenetic tree
+   alongside one NCBI genome per fungal genus (see "Phylogeny" below).
 
 Everything is driven by Snakemake against the SLURM executor plugin -- one
 job per rule instance, submitted and tracked by Snakemake itself.
@@ -177,6 +179,32 @@ the BUSCO container -- see `workflow/rules/7_BUSCO.smk` for the image) lists
 what's available. Don't compare BUSCO scores across dataset versions
 (odb10 vs odb12).
 
+### Phylogeny
+With `phylogeny: enabled: true` (the default), the pipeline also builds one
+tree over all samples: both final assemblies per sample (`lowest_contig` and
+`highest_busco`) plus **one NCBI genome for every genus** under
+`phylogeny: taxon:` (default `Fungi`). The tree is made with
+[mashtree](https://github.com/lskatz/mashtree) (Mash distances + neighbour
+joining), the same approach as the BAGS pipeline.
+
+- The reference download (`workflow/rules/0_4_ncbi_genus_representatives.smk`)
+  does not depend on any sample, so it starts right away and runs in
+  parallel with basecalling/assembly. Only the tree itself
+  (`workflow/rules/10_phylogeny.smk`) waits for the assemblies.
+- Genus comes from NCBI taxonomy. Per genus, the representative is the NCBI
+  "reference genome" if there is one, then the best assembly level
+  (Complete > Chromosome > Scaffold > Contig), then the highest contig N50.
+  The picks are listed in `data/phylogeny/genus_representatives.tsv`.
+- All of Fungi is a few thousand genomes, **~100 GB**, and takes hours to
+  download. It is downloaded once and kept in
+  `data/phylogeny/reference_genomes/`; delete that folder and
+  `data/phylogeny/ncbi/` to download again (e.g. after changing `taxon`).
+  Set `enabled: false` for a quick test run on the example data.
+- Optional: `export NCBI_API_KEY=<key>` before running Snakemake; the
+  `datasets` CLI picks it up and NCBI then allows more requests per second.
+- One genome per genus places a sample at genus/family level; it is not
+  meant to resolve species.
+
 ## Containers
 Every tool (BUSCO, hifiasm, Flye, ...) runs inside a container, downloaded
 automatically the first time that tool is needed and reused after that. You
@@ -185,7 +213,9 @@ don't need to install these tools yourself, and there is no setup step.
 Each container is one pinned image from
 [biocontainers](https://biocontainers.pro/) (e.g.
 `quay.io/biocontainers/hifiasm:0.25.0--h5ca1c30_0`), listed under
-`container:` in each file under `workflow/rules/`. `workflow/envs/*.yml`
+`container:` in each file under `workflow/rules/`. The one exception is
+NCBI `datasets`, which is no longer on bioconda: it uses StaPH-B's
+`staphb/ncbi-datasets` image instead. `workflow/envs/*.yml`
 still documents the same tool+version as a conda environment, but is no
 longer used to install anything -- it's just a reference.
 
@@ -242,6 +272,11 @@ results/<sample>/
     assembly_stats.tsv
     <sample>_highest_busco_final.fasta  # THE deliverable for this selector
 
+results/phylogeny/                    # only if phylogeny: enabled: true
+  genus_tree.nwk                      # Newick tree: all samples' final assemblies + one NCBI genome per genus
+  genus_tree_distances.tsv            # the Mash distance matrix behind it
+  tip_labels.tsv                      # tip label -> accession, organism, phylum/class/order/family (e.g. for iTOL)
+
 logs/                   # per-rule, per-sample logs
 snake_log/               # the Snakemake orchestrator's own run logs
 ```
@@ -251,10 +286,12 @@ Both selectors run all the way through independently -- there is no single
 `highest_busco/summary.txt` and pick whichever looks better for your genome.
 
 `data/` holds intermediates and is mostly cleaned up automatically once
-nothing downstream needs it. Two things persist deliberately:
+nothing downstream needs it. These persist deliberately:
 `data/dorado_basecall/<sample>.bam` (basecalling is expensive to redo) and,
 if a sample sets `organelle: true`, `data/getorganelle/<sample>/Mitochondria`
-(the only copy of that result).
+(the only copy of that result). With the phylogeny on,
+`data/phylogeny/reference_genomes/` is kept too, so the ~100 GB NCBI download
+only happens once.
 
 ## Repo layout
 - `Snakefile` -- entry-point handling, input resolvers, adaptive resource
@@ -269,6 +306,8 @@ if a sample sets `organelle: true`, `data/getorganelle/<sample>/Mitochondria`
   `results/<sample>/<selector>/summary.txt`.
 - `workflow/scripts/pick_highest_busco.py` -- picks the `highest_busco`
   selector's grid winner (see `rule highest_busco`).
+- `workflow/scripts/pick_genus_representatives.py` -- picks one NCBI
+  assembly per genus for the phylogeny (see `rule pick_genus_representatives`).
 - `config/config.yaml`, `profile/config.yaml` -- see above.
 - `example_data/` -- tiny fake reads for a first test run; see its README.
 - `scripts/` -- separate, standalone scripts used to make the paper's

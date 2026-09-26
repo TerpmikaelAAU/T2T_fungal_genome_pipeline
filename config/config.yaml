@@ -135,3 +135,22 @@ hifiasm_min_input_mb: 1
 filter:
   min_q:   [10, 15, 20]
   min_len: [10000, 15000, 20000, 25000, 30000]
+
+# ============================================================================
+#  Phylogeny
+# ============================================================================
+# One Mash-distance tree (mashtree, as in the BAGS pipeline) placing every
+# sample's two final assemblies (lowest_contig + highest_busco) among ONE
+# NCBI genome per genus of `taxon`. The NCBI download needs no samples, so
+# it runs in parallel with everything else from the start; only the tree
+# itself waits for the assemblies. Output: results/phylogeny/.
+#
+# The full Fungi download is a few thousand genomes, ~100 GB, and takes
+# hours -- set enabled: false for a quick test run on the example data.
+# It is only downloaded once (data/phylogeny/reference_genomes/); delete that
+# folder and data/phylogeny/ncbi/ to re-download, e.g. after changing taxon.
+phylogeny:
+  enabled: true
+  # Any NCBI taxon name or taxid, e.g. "Fungi", "Ascomycota", "Eurotiomycetes"
+  # -- or "Oomycota" for Phytophthora & co., which are not fungi.
+  taxon: "Fungi"
