@@ -185,3 +185,17 @@ phylogeny:
   # Any NCBI taxon name or taxid, e.g. "Fungi", "Ascomycota", "Eurotiomycetes".
   # UFCG's core genes are fungal -- this tree doesn't suit oomycetes.
   taxon: "Fungi"
+
+# ============================================================================
+#  Annotation (BAGS)
+# ============================================================================
+# The BAGS pipeline's steps on every final assembly (all selectors):
+# geneML gene prediction -> antiSMASH secondary-metabolite gene clusters
+# (using geneML's genes) -> BUSCO on the predicted proteins. Output per
+# assembly in results/<sample>/<selector>/annotation/, and one table over
+# all of them in results/annotation_summary.tsv.
+# First run also installs geneML (from PyPI) and downloads the antiSMASH
+# databases into resources/, once. Off by default.
+bags:
+  enabled: false
+  geneml_version: "1.1.0"

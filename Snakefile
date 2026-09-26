@@ -24,7 +24,8 @@ configfile: "config/config.yaml"
 #                                workflow/rules/, numbered in DAG order
 #   6. Targets (`rule all`)   -- assembled per sample according to its entry
 #                                point and options (see final_targets()),
-#                                plus the optional all-sample phylogeny
+#                                plus the optional all-sample phylogeny and
+#                                annotation (BAGS)
 #
 # See config/config.yaml for what's configurable and README.md for how to
 # run this.
@@ -307,6 +308,9 @@ resources = {
     "correct_infer":    {"mem_mb": 60000,  "runtime": 480},
     "correct_merge":    {"mem_mb": 5000,   "runtime": 60},
     "tidk":             {"mem_mb": 8000,   "runtime": 120},
+    # annotation, BAGS (11_annotation_bags.smk)
+    "geneml":           {"mem_mb": 30000,  "runtime": 360},
+    "antismash":        {"mem_mb": 64000,  "runtime": 360},
     # phylogeny (0_4_ncbi_genus_representatives.smk, 10_phylogeny.smk)
     "ncbi_datasets":    {"mem_mb": 8000,   "runtime": 2880},  # a few thousand genomes, ~100 GB
     "ufcg_profile":     {"mem_mb": 16000,  "runtime": 240},   # per genome
@@ -354,6 +358,7 @@ include: "workflow/rules/7_getorganelle.smk"
 include: "workflow/rules/9_stats.smk"
 include: "workflow/rules/9_1_telomere_report.smk"
 include: "workflow/rules/10_phylogeny.smk"
+include: "workflow/rules/11_annotation_bags.smk"
 
 # ============================================================================
 #  Targets -- built per sample according to its entry point
@@ -391,6 +396,10 @@ def final_targets():
             t.append(f"data/getorganelle/{n}/Mitochondria")
     if wants_phylogeny():
         t.append("results/phylogeny/genus_tree.nwk")
+    if config.get("bags", {}).get("enabled", False):
+        # geneML genes, antiSMASH BGCs and protein BUSCO for every final
+        # assembly, collected in one table (11_annotation_bags.smk).
+        t.append("results/annotation_summary.tsv")
     return t
 
 rule all:
