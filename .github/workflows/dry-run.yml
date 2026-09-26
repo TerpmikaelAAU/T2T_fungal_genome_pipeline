@@ -1,0 +1,59 @@
+# Cheap safety net for every push and PR: does the workflow still parse and
+# build its job graph? Runs no tools and needs no cluster -- `snakemake -n`
+# only plans the jobs. Covers the default config (bundled example data) and
+# every optional feature switched on and off.
+name: dry-run
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  dry-run:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install Snakemake
+        # Same version as Snakemake_env.yml
+        run: pip install snakemake==9.26.1
+
+      - name: Python scripts compile
+        run: python -m py_compile workflow/scripts/*.py
+
+      - name: Dry-run, default config (example data)
+        run: snakemake -n --cores 1 --quiet rules
+
+      - name: Dry-run, every optional feature on, with a non-example sample
+        # The phylogeny skips itself for example-data-only runs, so point one
+        # sample at a copy outside example_data/ to plan it too.
+        run: |
+          cp example_data/sample_b.fastq "$RUNNER_TEMP/ci_sample.fastq"
+          python - <<PY
+          import yaml
+          cfg = yaml.safe_load(open("config/config.yaml"))
+          cfg["samples"]["sample_b"]["path"] = "$RUNNER_TEMP/ci_sample.fastq"
+          cfg["phylogeny"]["enabled"] = True
+          cfg["telomere"]["enabled"] = True
+          for key in ("bags",):
+              if key in cfg:
+                  cfg[key]["enabled"] = True
+          yaml.safe_dump(cfg, open("$RUNNER_TEMP/all_on.yaml", "w"))
+          PY
+          snakemake -n --cores 1 --quiet rules --configfile "$RUNNER_TEMP/all_on.yaml"
+
+      - name: Dry-run, every optional feature off
+        run: |
+          python - <<PY
+          import yaml
+          cfg = yaml.safe_load(open("config/config.yaml"))
+          for key in ("phylogeny", "telomere", "bags"):
+              if key in cfg:
+                  cfg[key]["enabled"] = False
+          yaml.safe_dump(cfg, open("$RUNNER_TEMP/all_off.yaml", "w"))
+          PY
+          snakemake -n --cores 1 --quiet rules --configfile "$RUNNER_TEMP/all_off.yaml"
