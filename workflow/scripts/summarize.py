@@ -36,6 +36,8 @@ def label(path):
     parent = os.path.basename(os.path.dirname(path))
     if "porechopped" in path:
         return "after adapter trimming"
+    if "hifiasm_telo" in path:
+        return f"assembly {parent} +telo"
     if "hifiasm" in path:
         return f"assembly {parent}"
     if "contig" in path:
@@ -84,6 +86,7 @@ selector = snakemake.params.selector
 selector_desc = {
     "lowest_contig": "fewest contigs",
     "highest_busco": "highest BUSCO completeness",
+    "most_t2t": "most telomere-to-telomere contigs",
 }.get(selector, selector)
 
 out = []
@@ -146,6 +149,32 @@ else:
                f"{snakemake.input.busco}")
     out.append("  (check the BUSCO rule's -o path; see the run log)")
 out.append("")
+
+# --- telomeres (only with `telomere: enabled: true`) -----------------------
+if "telomeres" in snakemake.input.keys():
+    motif = {}
+    with open(snakemake.input.motif) as fh:
+        for line in fh:
+            key, _, value = line.rstrip("\n").partition("\t")
+            motif[key] = value
+    contigs = []
+    with open(snakemake.input.telomeres) as fh:
+        for line in fh:
+            if line.startswith("#") or line.startswith("contig\t"):
+                continue
+            contigs.append(line.rstrip("\n").split("\t"))
+    ends = sum((c[4] == "yes") + (c[5] == "yes") for c in contigs)
+    t2t = sum(c[6] == "yes" for c in contigs)
+    out.append("-" * 70)
+    out.append("TELOMERES")
+    out.append("-" * 70)
+    out.append(f"Motif             : {motif.get('motif', '?')}  "
+               f"(5' end: {motif.get('motif_5prime', '?')})")
+    out.append(f"hifiasm re-run    : {motif.get('rerun', '?')} -- {motif.get('reason', '')}")
+    out.append(f"T2T contigs       : {t2t} of {len(contigs)}")
+    out.append(f"Telomeric ends    : {ends} of {2 * len(contigs)}")
+    out.append(f"  (per contig: {snakemake.input.telomeres})")
+    out.append("")
 
 with open(snakemake.output.a, "w") as fh:
     fh.write("\n".join(out) + "\n")
