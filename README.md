@@ -23,7 +23,11 @@ FASTQ), the pipeline:
 4. Polishes each winner with `dorado polish` where a BAM is available.
 5. Runs BUSCO on each winner and reports read/assembly stats and coverage.
 6. Optionally recovers an organelle genome via `flye` + `GetOrganelle`.
-7. Places every sample's two final assemblies in a UFCG core-gene
+7. Finds each sample's telomere motif (tidk), reports telomeres on every
+   final assembly, optionally re-assembles with the motif
+   (`hifiasm --telo-m`), and adds a third winner: most telomere-to-telomere
+   contigs (see "Telomeres" below).
+8. Places every sample's final assemblies in a UFCG core-gene
    phylogeny alongside one NCBI genome per fungal genus (see "Phylogeny"
    below).
 
@@ -180,6 +184,34 @@ the BUSCO container -- see `workflow/rules/7_BUSCO.smk` for the image) lists
 what's available. Don't compare BUSCO scores across dataset versions
 (odb10 vs odb12).
 
+### Telomeres
+With `telomere: enabled: true` (the default) -- see
+`workflow/rules/5_1_telomere_motif.smk`, `6_02_most_t2t.smk` and
+`9_1_telomere_report.smk`:
+
+1. **Find the motif, for any genome.** `tidk explore` runs on the sample's
+   first-pass assembly with the fewest contigs and lists candidate repeat
+   units near contig ends. The top `top_motifs` (10) are each checked with
+   `tidk search`; the motif that makes the most contig ends telomeric wins.
+   The ranking is in `results/<sample>/telomere_motif_candidates.tsv`.
+2. **Re-assemble with it (optional).** If that motif covers at least
+   `rerun_min_fraction` (80%) of all telomeric ends any candidate found, and
+   at least `rerun_min_ends` ends, every grid cell is re-assembled with
+   `hifiasm --telo-m <motif>`. The selectors then choose across BOTH
+   hifiasm runs (`+telo` rows in `summary.txt`). This doubles the hifiasm
+   cost when it fires; set `rerun_hifiasm: false` to skip it.
+3. **Third selector, `most_t2t`.** The grid cell with the most
+   telomere-to-telomere contigs (ties: more telomeric ends, then fewer
+   contigs) -- polished, BUSCO'd and reported like the other two, under
+   `results/<sample>/most_t2t/`.
+4. **Report on every final assembly:** `telomeres.tsv` (per contig:
+   repeats at each end, telomeric?, T2T?), a `tidk plot` SVG under
+   `telomeres/`, and a TELOMERES section in `summary.txt`.
+
+An end counts as telomeric with at least `min_repeats` (10) motif copies in
+its terminal `window` (2000 bp). If no candidate finds any telomere,
+`fallback_motif` (TTAGGG) is used for the counts and hifiasm is not re-run.
+
 ### Phylogeny
 With `phylogeny: enabled: true` (the default), the pipeline also builds one
 tree over all samples: both final assemblies per sample (`lowest_contig` and
@@ -283,6 +315,11 @@ results/<sample>/
     assembly_stats.tsv
     <sample>_highest_busco_final.fasta  # THE deliverable for this selector
 
+  most_t2t/                           # only with telomere: enabled -- winner by most T2T contigs
+    ...                               #   same files as above
+  <selector>/telomeres.tsv            # per-contig telomeres (telomere: enabled), + telomeres/*.svg
+  telomere_motif_candidates.tsv       # tidk explore candidates and the chosen motif
+
 results/phylogeny/                    # only if phylogeny: enabled: true
   genus_tree.nwk                      # Newick tree: all samples' final assemblies + one NCBI genome per genus
   ufcg_concatenated_alignment.fasta   # the concatenated UFCG core-gene protein alignment behind it
@@ -292,9 +329,10 @@ logs/                   # per-rule, per-sample logs
 snake_log/               # the Snakemake orchestrator's own run logs
 ```
 
-Both selectors run all the way through independently -- there is no single
-"the" final assembly, there are two: compare `lowest_contig/summary.txt` and
-`highest_busco/summary.txt` and pick whichever looks better for your genome.
+All selectors run all the way through independently -- there is no single
+"the" final assembly, there are two (three with telomeres on): compare
+`lowest_contig/`, `highest_busco/` and `most_t2t/summary.txt` and pick
+whichever looks better for your genome.
 
 `data/` holds intermediates and is mostly cleaned up automatically once
 nothing downstream needs it. These persist deliberately:
@@ -317,6 +355,9 @@ reference genomes' UFCG profiles are only made once.
   `results/<sample>/<selector>/summary.txt`.
 - `workflow/scripts/pick_highest_busco.py` -- picks the `highest_busco`
   selector's grid winner (see `rule highest_busco`).
+- `workflow/scripts/telomeres.py` (+ `pick_telomere_motif.py`,
+  `pick_most_t2t.py`, `telomere_report.py`) -- reads `tidk search` output:
+  motif choice, the `most_t2t` pick, and the per-contig telomere table.
 - `workflow/scripts/pick_genus_representatives.py` -- picks one NCBI
   assembly per genus for the phylogeny (see `rule pick_genus_representatives`).
 - `config/config.yaml`, `profile/config.yaml` -- see above.
