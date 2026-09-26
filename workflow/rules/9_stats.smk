@@ -40,11 +40,7 @@ rule read_stats:
 
 
 def assembly_stats_candidates(wildcards):
-    grid = filter_grid(wildcards.input)
-    return expand("data/hifiasm/{input}_q{minq}_l{minlen}/{input}_q{minq}_l{minlen}.fa",
-                  input=wildcards.input,
-                  minq=grid["min_q"],
-                  minlen=grid["min_len"])
+    return grid_assemblies(wildcards.input)
 
 rule assembly_stats:
     input:
@@ -86,8 +82,16 @@ rule final_genome:
         """
 
 
+def summary_telomere_inputs(wildcards):
+    """The TELOMERES section of summary.txt, when telomeres are on."""
+    if not TELOMERE_ON:
+        return {}
+    return {"telomeres": f"results/{wildcards.input}/{wildcards.selector}/telomeres.tsv",
+            "motif": f"data/telomere/{wildcards.input}/motif.tsv"}
+
 rule summary:
     input:
+        unpack(summary_telomere_inputs),
         reads = "results/{input}/read_stats.tsv",
         asm   = "results/{input}/{selector}/assembly_stats.tsv",
         final = "results/{input}/{selector}/{input}_{selector}_final.fasta",

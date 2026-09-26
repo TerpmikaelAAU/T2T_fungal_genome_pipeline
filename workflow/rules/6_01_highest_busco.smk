@@ -14,12 +14,12 @@
 
 rule busco_grid:
     input:
-        a = "data/hifiasm/{input}_q{minq}_l{minlen}/{input}_q{minq}_l{minlen}.fa"
+        a = "data/{asm}/{input}_q{minq}_l{minlen}/{input}_q{minq}_l{minlen}.fa"
     output:
         # temp(): only the winning cell's BUSCO result matters afterwards,
         # and that gets re-run anyway by the final `busco` rule (7_BUSCO.smk)
         # on the possibly-polished assembly -- this is purely for selection.
-        dir = temp(directory("data/busco_grid/{input}_q{minq}_l{minlen}/BUSCO")),
+        dir = temp(directory("data/busco_grid/{asm}/{input}_q{minq}_l{minlen}/BUSCO")),
     params:
         lineage = lambda w: busco_lineage(w.input)
     threads:
@@ -47,11 +47,10 @@ rule busco_grid:
 
 
 def busco_grid_candidates(wildcards):
-    grid = filter_grid(wildcards.input)
-    return expand("data/busco_grid/{input}_q{minq}_l{minlen}/BUSCO",
-                  input=wildcards.input,
-                  minq=grid["min_q"],
-                  minlen=grid["min_len"])
+    # Same order as grid_assemblies(): data/<asm>/<cell>/<cell>.fa ->
+    # data/busco_grid/<asm>/<cell>/BUSCO.
+    return [os.path.join("data/busco_grid", fa.split("/")[1], fa.split("/")[2], "BUSCO")
+            for fa in grid_assemblies(wildcards.input)]
 
 
 rule highest_busco:

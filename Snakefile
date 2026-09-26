@@ -24,7 +24,8 @@ configfile: "config/config.yaml"
 #                                workflow/rules/, numbered in DAG order
 #   6. Targets (`rule all`)   -- assembled per sample according to its entry
 #                                point and options (see final_targets()),
-#                                plus the optional all-sample phylogeny
+#                                plus the optional all-sample phylogeny and
+#                                annotation (BAGS)
 #
 # See config/config.yaml for what's configurable and README.md for how to
 # run this.
@@ -58,20 +59,31 @@ for _name, _s in SAMPLES.items():
 # digits keeps "{input}_q10_l5000" parsing as input="{input}", minq="10",
 # minlen="5000" instead of Snakemake trying every split. `selector` picks
 # which grid-winner strategy a downstream result came from (see SELECTORS
-# below and 6_01_highest_busco.smk).
+# below and 6_01_highest_busco.smk). `asm` is which hifiasm pass a grid
+# cell came from: the normal one, or the telomere-aware re-run (see
+# 5_1_telomere_motif.smk).
 wildcard_constraints:
     minq     = r"\d+",
     minlen   = r"\d+",
     block    = r"\d+",
-    selector = r"lowest_contig|highest_busco",
+    selector = r"lowest_contig|highest_busco|most_t2t",
+    asm      = r"hifiasm|hifiasm_telo",
 
-# Two independent ways to pick a winner across a sample's (min_q, min_len)
-# grid: fewest contigs (contig_count, 6_00) or highest BUSCO completeness
-# (highest_busco, 6_01). Both go through the same rest of the pipeline
-# (polish if possible, BUSCO on the final assembly, stats, results/) --
-# see final_targets() below -- so every sample ends up with two parallel
+# Telomeres (config `telomere:`): find the organism's telomere motif with
+# tidk, optionally re-run the grid with hifiasm --telo-m, and pick a third
+# winner by most telomere-to-telomere contigs.
+TELO = config.get("telomere", {})
+TELOMERE_ON = bool(TELO.get("enabled", False))
+TELO_RERUN = TELOMERE_ON and bool(TELO.get("rerun_hifiasm", True))
+
+# Independent ways to pick a winner across a sample's (min_q, min_len)
+# grid: fewest contigs (contig_count, 6_00), highest BUSCO completeness
+# (highest_busco, 6_01) and, with telomeres on, most T2T contigs (most_t2t,
+# 6_02). All go through the same rest of the pipeline (polish if possible,
+# BUSCO on the final assembly, stats, results/) -- see final_targets()
+# below -- so every sample ends up with parallel
 # results/{sample}/<selector>/ deliverables to compare.
-SELECTORS = ["lowest_contig", "highest_busco"]
+SELECTORS = ["lowest_contig", "highest_busco"] + (["most_t2t"] if TELOMERE_ON else [])
 
 def stype(name):
     return SAMPLES[name]["type"]
@@ -194,6 +206,17 @@ def get_ultralong_input(wildcards):
     u = config["ultralong"]
     return f"data/chopper/{wildcards.input}_q{u['min_q']}_l{u['min_len']}.fastq"
 
+def grid_assemblies(name, passes=None):
+    """Every grid-cell assembly the selectors choose between, in a fixed
+    order: the normal hifiasm pass, then (if enabled) the telomere-aware
+    re-run of the same cells. A re-run cell whose motif didn't qualify is an
+    empty placeholder, which every selector already skips."""
+    if passes is None:
+        passes = ["hifiasm", "hifiasm_telo"] if TELO_RERUN else ["hifiasm"]
+    grid = filter_grid(name)
+    return [f"data/{asm}/{name}_q{q}_l{l}/{name}_q{q}_l{l}.fa"
+            for asm in passes for q in grid["min_q"] for l in grid["min_len"]]
+
 def hifiasm_inputs(wildcards):
     d = {"a": get_assembly_input(wildcards)}
     if wants_ultralong(wildcards.input):
@@ -284,6 +307,10 @@ resources = {
     "correct_overlap":  {"mem_mb": 250000, "runtime": 720},
     "correct_infer":    {"mem_mb": 60000,  "runtime": 480},
     "correct_merge":    {"mem_mb": 5000,   "runtime": 60},
+    "tidk":             {"mem_mb": 8000,   "runtime": 120},
+    # annotation, BAGS (11_annotation_bags.smk)
+    "geneml":           {"mem_mb": 30000,  "runtime": 360},
+    "antismash":        {"mem_mb": 64000,  "runtime": 360},
     # phylogeny (0_4_ncbi_genus_representatives.smk, 10_phylogeny.smk)
     "ncbi_datasets":    {"mem_mb": 8000,   "runtime": 2880},  # a few thousand genomes, ~100 GB
     "ufcg_profile":     {"mem_mb": 16000,  "runtime": 240},   # per genome
@@ -318,16 +345,20 @@ include: "workflow/rules/3_dorado_correct.smk"
 include: "workflow/rules/3_seqtk_fasta_to_fastq.smk"
 include: "workflow/rules/3_2_length_filter_corrected.smk"
 include: "workflow/rules/5_hifiasm.smk"
+include: "workflow/rules/5_1_telomere_motif.smk"
 include: "workflow/rules/6_0_fga_to_fa.smk"
 include: "workflow/rules/6_00_lowest_contig_count.smk"
 include: "workflow/rules/6_01_highest_busco.smk"
+include: "workflow/rules/6_02_most_t2t.smk"
 include: "workflow/rules/6_1_dorado_align.smk"
 include: "workflow/rules/6_3_dorado_polish.smk"
 include: "workflow/rules/7_BUSCO.smk"
 include: "workflow/rules/7_getorganelle_database.smk"
 include: "workflow/rules/7_getorganelle.smk"
 include: "workflow/rules/9_stats.smk"
+include: "workflow/rules/9_1_telomere_report.smk"
 include: "workflow/rules/10_phylogeny.smk"
+include: "workflow/rules/11_annotation_bags.smk"
 
 # ============================================================================
 #  Targets -- built per sample according to its entry point
@@ -359,10 +390,16 @@ def final_targets():
             t.append(f"data/busco/{n}_{sel}/BUSCO")
             t.append(f"results/{n}/{sel}/summary.txt")
             t.append(f"results/{n}/{sel}/{n}_{sel}_final.fasta")
+            if TELOMERE_ON:
+                t.append(f"results/{n}/{sel}/telomeres.tsv")
         if wants_organelle(n):
             t.append(f"data/getorganelle/{n}/Mitochondria")
     if wants_phylogeny():
         t.append("results/phylogeny/genus_tree.nwk")
+    if config.get("bags", {}).get("enabled", False):
+        # geneML genes, antiSMASH BGCs and protein BUSCO for every final
+        # assembly, collected in one table (11_annotation_bags.smk).
+        t.append("results/annotation_summary.tsv")
     return t
 
 rule all:
