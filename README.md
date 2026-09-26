@@ -29,10 +29,12 @@ FASTQ), the pipeline:
    final assembly, optionally re-assembles with the motif
    (`hifiasm --telo-m`), and adds a third winner: most telomere-to-telomere
    contigs (see "Telomeres" below).
-8. Optionally annotates every final assembly the BAGS way: geneML genes,
+8. Screens every final assembly for contamination with Tiara (bacterial /
+   archaeal contigs; see "Contamination screen" below).
+9. Optionally annotates every final assembly the BAGS way: geneML genes,
    antiSMASH secondary-metabolite clusters, BUSCO on the proteins (see
    "Annotation (BAGS)" below).
-9. Places every sample's final assemblies in a UFCG core-gene
+10. Places every sample's final assemblies in a UFCG core-gene
    phylogeny alongside one NCBI genome per fungal genus (see "Phylogeny"
    below).
 
@@ -252,6 +254,24 @@ per genome, `ufcg align` (MAFFT) + concatenation, then FastTree (LG+gamma).
   meant to resolve species. UFCG's markers are fungal, so this doesn't
   suit oomycetes.
 
+### Contamination screen
+With `contamination: enabled: true` (the default), every final assembly is
+run through [Tiara](https://github.com/ibe-uw/tiara)
+(`workflow/rules/8_contamination_tiara.smk`), a small deep-learning
+classifier that labels each contig as eukarya, bacteria, archaea,
+organelle (mitochondrion/plastid) or unknown. `summary.txt` gets a
+CONTAMINATION section with contigs and bp per class, and a warning listing
+any bacterial/archaeal contigs; per-contig classes and probabilities are in
+`results/<sample>/<selector>/contamination/tiara.tsv`. It only reports --
+nothing is removed.
+
+Why Tiara and not NCBI's FCS-GX: FCS-GX needs a ~500 GB database held in
+RAM to be fast, and NCBI runs it on every genome submission anyway. Tiara
+ships its models, needs no database and takes minutes. Contigs shorter than
+`min_len` (3 kb) aren't classified. Tiara isn't on bioconda and pins old
+dependencies (Python ≤ 3.9), so the first run installs it once into
+`resources/tiara-<version>/` inside the official `python:3.9-slim` image.
+
 ### Annotation (BAGS)
 Off by default; set `bags: enabled: true`. The steps of the
 [BAGS pipeline](https://github.com/TerpmikaelAAU/BAGS), run on every
@@ -283,8 +303,9 @@ Each container is one pinned image from
 NCBI `datasets`, which is no longer on bioconda (StaPH-B's
 `staphb/ncbi-datasets` image instead), and UFCG, whose official
 `endix1029/ufcg` image ships the core gene database the bioconda one lacks,
-and geneML, installed from PyPI into `python:3.12-slim` (see "Annotation
-(BAGS)"). `workflow/envs/*.yml`
+geneML, installed from PyPI into `python:3.12-slim` (see "Annotation
+(BAGS)"), and Tiara, likewise into `python:3.9-slim` (see "Contamination
+screen"). `workflow/envs/*.yml`
 still documents the same tool+version as a conda environment, but is no
 longer used to install anything -- it's just a reference.
 
@@ -346,6 +367,7 @@ results/<sample>/
   <selector>/telomeres.tsv            # per-contig telomeres (telomere: enabled), + telomeres/*.svg
   telomere_motif_candidates.tsv       # tidk explore candidates and the chosen motif
 
+  <selector>/contamination/tiara.tsv  # Tiara class per contig (contamination: enabled)
   <selector>/annotation/              # only with bags: enabled -- GFF3, proteins, antismash/, protein BUSCO
 
 results/annotation_summary.tsv        # only with bags: enabled -- genes, BUSCO, BGCs per final assembly

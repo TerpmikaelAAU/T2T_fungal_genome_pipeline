@@ -166,6 +166,18 @@ telomere:
   fallback_motif: TTAGGG  # used only if explore finds no telomeres at all
 
 # ============================================================================
+#  Contamination screen
+# ============================================================================
+# Tiara labels every contig of each final assembly as eukarya, bacteria,
+# archaea, organelle or unknown; summary.txt lists any bacterial/archaeal
+# contigs as possible contamination. Report only -- nothing is removed.
+# Small and fast (no big database, unlike NCBI FCS-GX); installed once into
+# resources/ on first use.
+contamination:
+  enabled: true
+  min_len: 3000   # Tiara doesn't classify contigs shorter than this
+
+# ============================================================================
 #  Phylogeny
 # ============================================================================
 # One protein tree (UFCG core genes -> MAFFT -> FastTree) placing every

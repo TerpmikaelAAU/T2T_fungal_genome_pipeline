@@ -82,16 +82,20 @@ rule final_genome:
         """
 
 
-def summary_telomere_inputs(wildcards):
-    """The TELOMERES section of summary.txt, when telomeres are on."""
-    if not TELOMERE_ON:
-        return {}
-    return {"telomeres": f"results/{wildcards.input}/{wildcards.selector}/telomeres.tsv",
-            "motif": f"data/telomere/{wildcards.input}/motif.tsv"}
+def summary_optional_inputs(wildcards):
+    """Inputs for summary.txt's optional sections: TELOMERES (telomere:
+    enabled) and CONTAMINATION (contamination: enabled)."""
+    d = {}
+    if TELOMERE_ON:
+        d["telomeres"] = f"results/{wildcards.input}/{wildcards.selector}/telomeres.tsv"
+        d["motif"] = f"data/telomere/{wildcards.input}/motif.tsv"
+    if CONTAMINATION_ON:
+        d["tiara"] = f"results/{wildcards.input}/{wildcards.selector}/contamination/tiara.tsv"
+    return d
 
 rule summary:
     input:
-        unpack(summary_telomere_inputs),
+        unpack(summary_optional_inputs),
         reads = "results/{input}/read_stats.tsv",
         asm   = "results/{input}/{selector}/assembly_stats.tsv",
         final = "results/{input}/{selector}/{input}_{selector}_final.fasta",
@@ -103,6 +107,7 @@ rule summary:
         selector = lambda w: w.selector,
         polished = lambda w: has_bam(w.input),
         lineage  = lambda w: busco_lineage(w.input),
+        tiara_min_len = CONTAM.get("min_len", 3000),
     threads:
         1
     resources:
