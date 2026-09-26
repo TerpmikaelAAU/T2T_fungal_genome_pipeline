@@ -135,3 +135,24 @@ hifiasm_min_input_mb: 1
 filter:
   min_q:   [10, 15, 20]
   min_len: [10000, 15000, 20000, 25000, 30000]
+
+# ============================================================================
+#  Phylogeny
+# ============================================================================
+# One protein tree (UFCG core genes -> MAFFT -> FastTree) placing every
+# sample's two final assemblies (lowest_contig + highest_busco) among ONE
+# NCBI genome per genus of `taxon`. The NCBI download and profiling of those
+# reference genomes need no samples, so they run in parallel with everything
+# else from the start; only the samples' profiles and the tree itself wait
+# for the assemblies. Output: results/phylogeny/.
+#
+# Cost, all of Fungi: a few thousand genomes (~100 GB download) and one UFCG
+# profile job per genome. Both are kept, so they only ever run once. Delete
+# data/phylogeny/ to start over, e.g. after changing taxon.
+#
+# Skipped automatically when every sample is bundled example_data/.
+phylogeny:
+  enabled: true
+  # Any NCBI taxon name or taxid, e.g. "Fungi", "Ascomycota", "Eurotiomycetes".
+  # UFCG's core genes are fungal -- this tree doesn't suit oomycetes.
+  taxon: "Fungi"
