@@ -1,0 +1,6 @@
+name: tidk
+channels:
+  - conda-forge
+  - bioconda
+dependencies:
+  - tidk=0.2.7

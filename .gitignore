@@ -19,3 +19,4 @@ migrate_rules.sh
 resources/
 Handoff.md
 efficiency_report*
+__pycache__/

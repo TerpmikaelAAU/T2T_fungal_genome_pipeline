@@ -1,5 +1,7 @@
 # T2T fungal genome assembly pipeline
 
+> **This is a work in progress.**
+
 ## Article
 Paper: "Gapless near Telomer-to-Telomer Assembly of Neurospora intermedia, Aspergillus oryzae, and Trichoderma asperellum from Nanopore Simplex Reads"
 https://doi.org/10.3390/jof11100701
@@ -23,7 +25,14 @@ FASTQ), the pipeline:
 4. Polishes each winner with `dorado polish` where a BAM is available.
 5. Runs BUSCO on each winner and reports read/assembly stats and coverage.
 6. Optionally recovers an organelle genome via `flye` + `GetOrganelle`.
-7. Places every sample's two final assemblies in a UFCG core-gene
+7. Finds each sample's telomere motif (tidk), reports telomeres on every
+   final assembly, optionally re-assembles with the motif
+   (`hifiasm --telo-m`), and adds a third winner: most telomere-to-telomere
+   contigs (see "Telomeres" below).
+8. Optionally annotates every final assembly the BAGS way: geneML genes,
+   antiSMASH secondary-metabolite clusters, BUSCO on the proteins (see
+   "Annotation (BAGS)" below).
+9. Places every sample's final assemblies in a UFCG core-gene
    phylogeny alongside one NCBI genome per fungal genus (see "Phylogeny"
    below).
 
@@ -180,6 +189,34 @@ the BUSCO container -- see `workflow/rules/7_BUSCO.smk` for the image) lists
 what's available. Don't compare BUSCO scores across dataset versions
 (odb10 vs odb12).
 
+### Telomeres
+With `telomere: enabled: true` (the default) -- see
+`workflow/rules/5_1_telomere_motif.smk`, `6_02_most_t2t.smk` and
+`9_1_telomere_report.smk`:
+
+1. **Find the motif, for any genome.** `tidk explore` runs on the sample's
+   first-pass assembly with the fewest contigs and lists candidate repeat
+   units near contig ends. The top `top_motifs` (10) are each checked with
+   `tidk search`; the motif that makes the most contig ends telomeric wins.
+   The ranking is in `results/<sample>/telomere_motif_candidates.tsv`.
+2. **Re-assemble with it (optional).** If that motif covers at least
+   `rerun_min_fraction` (80%) of all telomeric ends any candidate found, and
+   at least `rerun_min_ends` ends, every grid cell is re-assembled with
+   `hifiasm --telo-m <motif>`. The selectors then choose across BOTH
+   hifiasm runs (`+telo` rows in `summary.txt`). This doubles the hifiasm
+   cost when it fires; set `rerun_hifiasm: false` to skip it.
+3. **Third selector, `most_t2t`.** The grid cell with the most
+   telomere-to-telomere contigs (ties: more telomeric ends, then fewer
+   contigs) -- polished, BUSCO'd and reported like the other two, under
+   `results/<sample>/most_t2t/`.
+4. **Report on every final assembly:** `telomeres.tsv` (per contig:
+   repeats at each end, telomeric?, T2T?), a `tidk plot` SVG under
+   `telomeres/`, and a TELOMERES section in `summary.txt`.
+
+An end counts as telomeric with at least `min_repeats` (10) motif copies in
+its terminal `window` (2000 bp). If no candidate finds any telomere,
+`fallback_motif` (TTAGGG) is used for the counts and hifiasm is not re-run.
+
 ### Phylogeny
 With `phylogeny: enabled: true` (the default), the pipeline also builds one
 tree over all samples: both final assemblies per sample (`lowest_contig` and
@@ -215,6 +252,25 @@ per genome, `ufcg align` (MAFFT) + concatenation, then FastTree (LG+gamma).
   meant to resolve species. UFCG's markers are fungal, so this doesn't
   suit oomycetes.
 
+### Annotation (BAGS)
+Off by default; set `bags: enabled: true`. The steps of the
+[BAGS pipeline](https://github.com/TerpmikaelAAU/BAGS), run on every
+selector's final assembly (`workflow/rules/11_annotation_bags.smk`):
+geneML gene prediction → antiSMASH with geneML's genes
+(`--genefinding-tool none`, plus `--cc-mibig --cb-general`) → BUSCO in
+protein mode, which measures how complete the *annotation* is (the
+genome-mode BUSCO measures the assembly). Output per assembly in
+`results/<sample>/<selector>/annotation/` (GFF3, proteins, antiSMASH
+folder, protein BUSCO), and one row per assembly in
+`results/annotation_summary.tsv`: genes, BUSCO, and BGC regions by type
+(NRPS, PKS, terpene, RiPP, other; a hybrid region counts in each of its
+classes).
+
+geneML is only distributed on PyPI, so the first run installs it once into
+`resources/geneml-<version>/` (like dorado) inside the official
+`python:3.12-slim` image; the antiSMASH databases are likewise downloaded
+once into `resources/antismash_databases/`.
+
 ## Containers
 Every tool (BUSCO, hifiasm, Flye, ...) runs inside a container, downloaded
 automatically the first time that tool is needed and reused after that. You
@@ -226,7 +282,9 @@ Each container is one pinned image from
 `container:` in each file under `workflow/rules/`. The one exception is
 NCBI `datasets`, which is no longer on bioconda (StaPH-B's
 `staphb/ncbi-datasets` image instead), and UFCG, whose official
-`endix1029/ufcg` image ships the core gene database the bioconda one lacks. `workflow/envs/*.yml`
+`endix1029/ufcg` image ships the core gene database the bioconda one lacks,
+and geneML, installed from PyPI into `python:3.12-slim` (see "Annotation
+(BAGS)"). `workflow/envs/*.yml`
 still documents the same tool+version as a conda environment, but is no
 longer used to install anything -- it's just a reference.
 
@@ -283,6 +341,15 @@ results/<sample>/
     assembly_stats.tsv
     <sample>_highest_busco_final.fasta  # THE deliverable for this selector
 
+  most_t2t/                           # only with telomere: enabled -- winner by most T2T contigs
+    ...                               #   same files as above
+  <selector>/telomeres.tsv            # per-contig telomeres (telomere: enabled), + telomeres/*.svg
+  telomere_motif_candidates.tsv       # tidk explore candidates and the chosen motif
+
+  <selector>/annotation/              # only with bags: enabled -- GFF3, proteins, antismash/, protein BUSCO
+
+results/annotation_summary.tsv        # only with bags: enabled -- genes, BUSCO, BGCs per final assembly
+
 results/phylogeny/                    # only if phylogeny: enabled: true
   genus_tree.nwk                      # Newick tree: all samples' final assemblies + one NCBI genome per genus
   ufcg_concatenated_alignment.fasta   # the concatenated UFCG core-gene protein alignment behind it
@@ -292,9 +359,10 @@ logs/                   # per-rule, per-sample logs
 snake_log/               # the Snakemake orchestrator's own run logs
 ```
 
-Both selectors run all the way through independently -- there is no single
-"the" final assembly, there are two: compare `lowest_contig/summary.txt` and
-`highest_busco/summary.txt` and pick whichever looks better for your genome.
+All selectors run all the way through independently -- there is no single
+"the" final assembly, there are two (three with telomeres on): compare
+`lowest_contig/`, `highest_busco/` and `most_t2t/summary.txt` and pick
+whichever looks better for your genome.
 
 `data/` holds intermediates and is mostly cleaned up automatically once
 nothing downstream needs it. These persist deliberately:
@@ -317,6 +385,11 @@ reference genomes' UFCG profiles are only made once.
   `results/<sample>/<selector>/summary.txt`.
 - `workflow/scripts/pick_highest_busco.py` -- picks the `highest_busco`
   selector's grid winner (see `rule highest_busco`).
+- `workflow/scripts/telomeres.py` (+ `pick_telomere_motif.py`,
+  `pick_most_t2t.py`, `telomere_report.py`) -- reads `tidk search` output:
+  motif choice, the `most_t2t` pick, and the per-contig telomere table.
+- `workflow/scripts/bags_summary.py` -- one annotation row per assembly
+  (see "Annotation (BAGS)").
 - `workflow/scripts/pick_genus_representatives.py` -- picks one NCBI
   assembly per genus for the phylogeny (see `rule pick_genus_representatives`).
 - `config/config.yaml`, `profile/config.yaml` -- see above.
@@ -324,6 +397,13 @@ reference genomes' UFCG profiles are only made once.
 - `scripts/` -- separate, standalone scripts used to make the paper's
   figures (phylogeny, circos plots, telomere/mitochondria checks, ...).
   Barebones and not part of the Snakemake DAG; see `scripts/README.md`.
+
+## Automatic checks
+`.github/workflows/dry-run.yml` runs on every push and pull request: it
+compiles the Python scripts and runs `snakemake -n` on the default config,
+with every optional feature on, and with every feature off. It runs no
+tools and needs no cluster -- it catches a rule or config change that breaks
+the workflow before it's merged.
 
 ## Cluster notes (AAU BioCloud)
 Learned from running this pipeline on BioCloud; useful if you're adapting

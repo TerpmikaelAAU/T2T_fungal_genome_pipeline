@@ -137,6 +137,35 @@ filter:
   min_len: [10000, 15000, 20000, 25000, 30000]
 
 # ============================================================================
+#  Telomeres
+# ============================================================================
+# Finds each sample's telomere motif itself (works for any genome, not just
+# TTAGGG), reports telomeres on every final assembly, and adds a third grid
+# winner, most_t2t: the assembly with the most telomere-to-telomere contigs.
+#   1. `tidk explore` on the fewest-contigs assembly lists candidate repeat
+#      units near contig ends; the top `top_motifs` are each checked with
+#      `tidk search`, and the one that caps the most contig ends wins.
+#   2. If that motif covers >= rerun_min_fraction of all telomeric ends any
+#      candidate found (and at least rerun_min_ends ends), every grid cell is
+#      re-assembled with `hifiasm --telo-m <motif>`, and all selectors choose
+#      across both hifiasm runs. This doubles the hifiasm cost when it fires.
+# Output: results/<sample>/telomere_motif_candidates.tsv, and per selector
+# telomeres.tsv, telomeres/*.svg and a TELOMERES section in summary.txt.
+telomere:
+  enabled: true
+  top_motifs: 10          # explore candidates checked with tidk search
+  explore_min_len: 5      # repeat-unit lengths tidk explore tries
+  explore_max_len: 12
+  explore_threshold: 10   # min repeat units in a row for explore to count a run
+                          # (tidk's own default, 100, misses short fungal telomeres)
+  window: 2000            # tidk search window (bp)
+  min_repeats: 10         # repeats in a contig's terminal window = telomeric end
+  rerun_hifiasm: true
+  rerun_min_fraction: 0.8
+  rerun_min_ends: 4
+  fallback_motif: TTAGGG  # used only if explore finds no telomeres at all
+
+# ============================================================================
 #  Phylogeny
 # ============================================================================
 # One protein tree (UFCG core genes -> MAFFT -> FastTree) placing every
@@ -156,3 +185,17 @@ phylogeny:
   # Any NCBI taxon name or taxid, e.g. "Fungi", "Ascomycota", "Eurotiomycetes".
   # UFCG's core genes are fungal -- this tree doesn't suit oomycetes.
   taxon: "Fungi"
+
+# ============================================================================
+#  Annotation (BAGS)
+# ============================================================================
+# The BAGS pipeline's steps on every final assembly (all selectors):
+# geneML gene prediction -> antiSMASH secondary-metabolite gene clusters
+# (using geneML's genes) -> BUSCO on the predicted proteins. Output per
+# assembly in results/<sample>/<selector>/annotation/, and one table over
+# all of them in results/annotation_summary.tsv.
+# First run also installs geneML (from PyPI) and downloads the antiSMASH
+# databases into resources/, once. Off by default.
+bags:
+  enabled: false
+  geneml_version: "1.1.0"

@@ -5,11 +5,9 @@
 # cross-check the winner's total length in assembly_stats.tsv against the
 # expected genome size before trusting this pick.
 def contig_count_candidates(wildcards):
-    grid = filter_grid(wildcards.input)
-    return expand("data/hifiasm/{input}_q{minq}_l{minlen}/{input}_q{minq}_l{minlen}.fa",
-                  input=wildcards.input,
-                  minq=grid["min_q"],
-                  minlen=grid["min_len"])
+    # Both hifiasm passes when the telomere re-run is on (see Snakefile
+    # grid_assemblies()); its placeholder cells are empty, so skipped below.
+    return grid_assemblies(wildcards.input)
 
 rule contig_count:
     input:
