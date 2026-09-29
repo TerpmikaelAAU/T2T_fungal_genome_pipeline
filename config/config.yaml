@@ -72,8 +72,9 @@ samples:
   # --------------------------------------------------------------------------
   # Template for a real fungal genome from ONE basecalled .bam file.
   # Uncomment, rename my_fungus (it becomes the folder name under results/)
-  # and set `path`. Every key below `path` is optional; the value shown is
-  # the default, so delete any line you don't want to change.
+  # and set `path`. Every key below `path` is optional. The values shown are
+  # the defaults, EXCEPT subsample and organelle, which are off unless set --
+  # delete those two lines to keep them off.
   # --------------------------------------------------------------------------
   # my_fungus:
   #   type: bam
