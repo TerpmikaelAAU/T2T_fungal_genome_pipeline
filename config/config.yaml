@@ -72,9 +72,9 @@ samples:
   # --------------------------------------------------------------------------
   # Template for a real fungal genome from ONE basecalled .bam file.
   # Uncomment, rename my_fungus (it becomes the folder name under results/)
-  # and set `path`. Every key below `path` is optional. The values shown are
-  # the defaults, EXCEPT subsample and organelle, which are off unless set --
-  # delete those two lines to keep them off.
+  # and set `path`. Every key below `path` is optional; the values shown are
+  # the defaults except porechop (turned off here) and subsample (an example
+  # -- delete that line to use all reads, which is the default).
   # --------------------------------------------------------------------------
   # my_fungus:
   #   type: bam
@@ -83,8 +83,8 @@ samples:
   #   busco_lineage: fungi_odb12   # or narrower, e.g. ascomycota_odb12 (more genes = stricter
   #                                # test); `busco --list-datasets` lists them all
   #
-  #   porechop: true               # adapter trimming; slow on big BAMs -- false skips it
-  #                                # (dorado usually trims adapters already while basecalling)
+  #   porechop: false              # adapter trimming (default true); off here because it's
+  #                                # slow on big BAMs and dorado already trims while basecalling
   #
   #   filter:                      # the read-filtering grid: every min_q x min_len pair is
   #     min_q:   [10, 15, 20]      # one hifiasm assembly (3 x 5 = 15 here, 30 with the
@@ -98,8 +98,8 @@ samples:
   #
   #   subsample: {coverage: 100, genome_size: 40mb}   # coverage cap; omit to use ALL reads
   #
-  #   organelle: true              # also assemble the mitochondrial genome (default false)
-  #   organelle_type: fungus_mt    # required when organelle: true
+  #   organelle: false             # true = also assemble the mitochondrial genome, and then
+  #                                # also set organelle_type: fungus_mt
   #
   # For a bam sample, each final assembly (lowest_contig, highest_busco and,
   # with telomere: enabled, most_t2t) is polished with dorado polish -- once
