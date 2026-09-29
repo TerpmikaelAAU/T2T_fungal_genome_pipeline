@@ -35,3 +35,13 @@ rule busco:
         
         
         """
+
+# Same BUSCO run on the UNPOLISHED winner, for pod5/bam samples only (fastq
+# samples aren't polished, so `busco` above already is their "before"). With
+# both, summary.txt shows BUSCO before and after polishing side by side, to
+# see what dorado polish gained (or lost) for each selector.
+use rule busco as busco_unpolished with:
+    input:
+        a = "data/contig/{input}_{selector}_file.fa"
+    output:
+        dir = temp(directory("data/busco_unpolished/{input}_{selector}/BUSCO")),

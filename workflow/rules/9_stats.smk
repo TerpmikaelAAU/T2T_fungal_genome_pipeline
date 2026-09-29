@@ -83,9 +83,12 @@ rule final_genome:
 
 
 def summary_optional_inputs(wildcards):
-    """Inputs for summary.txt's optional sections: TELOMERES (telomere:
-    enabled) and CONTAMINATION (contamination: enabled)."""
+    """Inputs for summary.txt's optional sections: BUSCO before polishing
+    (pod5/bam samples), TELOMERES (telomere: enabled) and CONTAMINATION
+    (contamination: enabled)."""
     d = {}
+    if has_bam(wildcards.input):
+        d["busco_unpolished"] = f"data/busco_unpolished/{wildcards.input}_{wildcards.selector}/BUSCO"
     if TELOMERE_ON:
         d["telomeres"] = f"results/{wildcards.input}/{wildcards.selector}/telomeres.tsv"
         d["motif"] = f"data/telomere/{wildcards.input}/motif.tsv"
