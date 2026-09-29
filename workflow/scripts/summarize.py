@@ -1,7 +1,8 @@
 """Build a single human-readable summary per sample.
 
 Pulls together seqkit read stats, seqkit assembly stats, the BUSCO short
-summary, and a coverage estimate derived from corrected bases / assembly size.
+summary (before and after polishing, for polished samples), and a coverage
+estimate derived from corrected bases / assembly size.
 Written to be forgiving: if BUSCO output cannot be located the rest of the
 report is still produced, rather than failing the whole run at the last step.
 """
@@ -135,20 +136,42 @@ out.append(f"Estimated coverage: {coverage:.1f}x")
 out.append("  (raw bases / assembly size -- an upper bound, not a mapped depth)")
 out.append("")
 
-out.append("-" * 70)
-out.append(f"BUSCO  ({snakemake.params.lineage})")
-out.append("-" * 70)
-summary_file = find_busco(str(snakemake.input.busco))
-if summary_file:
-    with open(summary_file) as fh:
-        for line in fh:
-            if re.search(r"C:|Complete|Fragmented|Missing|Total BUSCO", line):
-                out.append("  " + line.strip())
+def busco_section(title, busco_dir):
+    """Append one BUSCO short summary to the report; return its C: percent
+    (None if the summary can't be found or parsed)."""
+    out.append("-" * 70)
+    out.append(title)
+    out.append("-" * 70)
+    summary_file = find_busco(str(busco_dir))
+    complete = None
+    if summary_file:
+        with open(summary_file) as fh:
+            for line in fh:
+                if re.search(r"C:|Complete|Fragmented|Missing|Total BUSCO", line):
+                    out.append("  " + line.strip())
+                m = re.search(r"C:([\d.]+)%", line)
+                if m and complete is None:
+                    complete = float(m.group(1))
+    else:
+        out.append(f"  short_summary*.txt not found under {busco_dir}")
+        out.append("  (check the BUSCO rule's -o path; see the run log)")
+    out.append("")
+    return complete
+
+
+lineage = snakemake.params.lineage
+if "busco_unpolished" in snakemake.input.keys():
+    # pod5/bam samples: the same assembly before and after dorado polish.
+    before = busco_section(f"BUSCO BEFORE POLISHING  ({lineage})",
+                           snakemake.input.busco_unpolished)
+    after = busco_section(f"BUSCO AFTER POLISHING  ({lineage})",
+                          snakemake.input.busco)
+    if before is not None and after is not None:
+        out.append(f"Polishing changed BUSCO completeness: C {before:.1f}% -> "
+                   f"{after:.1f}% ({after - before:+.1f})")
+        out.append("")
 else:
-    out.append("  short_summary*.txt not found under "
-               f"{snakemake.input.busco}")
-    out.append("  (check the BUSCO rule's -o path; see the run log)")
-out.append("")
+    busco_section(f"BUSCO  ({lineage})", snakemake.input.busco)
 
 # --- telomeres (only with `telomere: enabled: true`) -----------------------
 if "telomeres" in snakemake.input.keys():

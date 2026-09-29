@@ -355,6 +355,7 @@ include: "workflow/rules/6_0_fga_to_fa.smk"
 include: "workflow/rules/6_00_lowest_contig_count.smk"
 include: "workflow/rules/6_01_highest_busco.smk"
 include: "workflow/rules/6_02_most_t2t.smk"
+include: "workflow/rules/6_05_polish_once.smk"
 include: "workflow/rules/6_1_dorado_align.smk"
 include: "workflow/rules/6_3_dorado_polish.smk"
 include: "workflow/rules/7_BUSCO.smk"
@@ -394,6 +395,9 @@ def final_targets():
             else:
                 t.append(f"data/contig/{n}_{sel}_file.fa")
             t.append(f"data/busco/{n}_{sel}/BUSCO")
+            if has_bam(n):
+                # BUSCO on the same assembly before polishing, for comparison
+                t.append(f"data/busco_unpolished/{n}_{sel}/BUSCO")
             t.append(f"results/{n}/{sel}/summary.txt")
             t.append(f"results/{n}/{sel}/{n}_{sel}_final.fasta")
             if TELOMERE_ON:

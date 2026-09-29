@@ -22,8 +22,10 @@ FASTQ), the pipeline:
 3. Picks a winning assembly across the grid -- **twice, two independent
    ways**: fewest contigs, and highest BUSCO completeness (see "The
    read-filtering grid" below).
-4. Polishes each winner with `dorado polish` where a BAM is available.
-5. Runs BUSCO on each winner and reports read/assembly stats and coverage.
+4. Polishes each winner with `dorado polish` where a BAM is available
+   (once per distinct assembly, when several selectors pick the same one).
+5. Runs BUSCO on each winner -- before and after polishing when it is
+   polished -- and reports read/assembly stats and coverage.
 6. Optionally recovers an organelle genome via `flye` + `GetOrganelle`.
 7. Finds each sample's telomere motif (tidk), reports telomeres on every
    final assembly, optionally re-assembles with the motif
@@ -154,10 +156,13 @@ only its `min_len` values apply, and only AFTER correction -- see below.
   highest-completeness one instead -- doesn't share `contig_count`'s
   collapsed-repeat blind spot. **Cost warning:** this is one BUSCO run per
   grid cell (e.g. 12 for a 3x4 grid), on top of the final BUSCO run each
-  winner gets afterwards.
+  winner gets afterwards (two for pod5/bam samples: before and after
+  polishing).
 
 Both winners go through the rest of the pipeline independently -- polishing
-if a BAM is available, a final BUSCO run, stats, and a deliverable -- so
+if a BAM is available (with BUSCO run both before and after, so
+`summary.txt` shows what polishing changed), a final BUSCO run, stats, and a
+deliverable -- so
 every sample ends up with two directly comparable results:
 `results/<sample>/lowest_contig/` and `results/<sample>/highest_busco/`.
 Neither is automatically "more correct"; compare their `summary.txt` files
@@ -351,9 +356,10 @@ with `--notemp` to keep everything while debugging.
 ```
 results/<sample>/
   read_stats.tsv                      # seqkit stats for the raw (and trimmed) reads -- shared, sample-level
+  polish_groups.tsv                   # pod5/bam only: which selectors picked the same assembly (polished once)
 
   lowest_contig/                      # winner selected by fewest contigs
-    summary.txt                       #   human-readable: reads, grid, coverage, BUSCO
+    summary.txt                       #   human-readable: reads, grid, coverage, BUSCO (before + after polishing if polished)
     assembly_stats.tsv                #   seqkit stats for every grid candidate + this winner
     <sample>_lowest_contig_final.fasta  # THE deliverable for this selector -- polished if a BAM was available
 
