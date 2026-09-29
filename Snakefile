@@ -394,6 +394,9 @@ def final_targets():
             else:
                 t.append(f"data/contig/{n}_{sel}_file.fa")
             t.append(f"data/busco/{n}_{sel}/BUSCO")
+            if has_bam(n):
+                # BUSCO on the same assembly before polishing, for comparison
+                t.append(f"data/busco_unpolished/{n}_{sel}/BUSCO")
             t.append(f"results/{n}/{sel}/summary.txt")
             t.append(f"results/{n}/{sel}/{n}_{sel}_final.fasta")
             if TELOMERE_ON:
