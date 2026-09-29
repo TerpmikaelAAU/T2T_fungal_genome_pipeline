@@ -73,8 +73,7 @@ samples:
   # Template for a real fungal genome from ONE basecalled .bam file.
   # Uncomment, rename my_fungus (it becomes the folder name under results/)
   # and set `path`. Every key below `path` is optional; the values shown are
-  # the defaults except porechop (turned off here) and subsample (an example
-  # -- delete that line to use all reads, which is the default).
+  # the defaults except porechop (turned off here).
   # --------------------------------------------------------------------------
   # my_fungus:
   #   type: bam
@@ -96,7 +95,8 @@ samples:
   #   dorado_correct: false        # dorado read correction before hifiasm (GPU, slow;
   #                                # see `dorado_correct:` below for why it's off)
   #
-  #   subsample: {coverage: 100, genome_size: 40mb}   # coverage cap; omit to use ALL reads
+  #   # subsample: {coverage: 100, genome_size: 40mb}   # off = use ALL reads (default);
+  #                                # remove the inner '# ' to cap coverage instead
   #
   #   organelle: false             # true = also assemble the mitochondrial genome, and then
   #                                # also set organelle_type: fungus_mt
