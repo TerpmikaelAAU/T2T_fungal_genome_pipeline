@@ -1,15 +1,16 @@
 # Only reached for pod5/bam entry points (has_bam() -- polishing needs a
-# BAM's move table). Aligns the original basecalled reads back onto the
-# WINNING grid-cell assembly -- whichever selector (lowest_contig or
-# highest_busco, see Snakefile SELECTORS) is being built -- producing the
-# input dorado_polish needs.
+# BAM). Aligns the original basecalled reads back onto a WINNING grid-cell
+# assembly, producing the input dorado_polish needs. Runs once per DISTINCT
+# winner: {selector} here is the first selector that picked it (see
+# 6_05_polish_once.smk), so identical winners are aligned only once.
 rule dorado_align:
     input:
         dorado = dorado_bin,
-        a = "data/contig/{input}_{selector}_file.fa",
+        a = unique_winner,
         b = get_bam
     output:
-        a = temp("data/dorado_align/{input}_{selector}.bam")
+        a = temp("data/dorado_align/{input}_{selector}.bam"),
+        bai = temp("data/dorado_align/{input}_{selector}.bam.bai"),
     threads:
         50
     resources:

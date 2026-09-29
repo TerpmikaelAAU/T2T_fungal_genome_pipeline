@@ -22,7 +22,8 @@ FASTQ), the pipeline:
 3. Picks a winning assembly across the grid -- **twice, two independent
    ways**: fewest contigs, and highest BUSCO completeness (see "The
    read-filtering grid" below).
-4. Polishes each winner with `dorado polish` where a BAM is available.
+4. Polishes each winner with `dorado polish` where a BAM is available
+   (once per distinct assembly, when several selectors pick the same one).
 5. Runs BUSCO on each winner -- before and after polishing when it is
    polished -- and reports read/assembly stats and coverage.
 6. Optionally recovers an organelle genome via `flye` + `GetOrganelle`.
@@ -355,6 +356,7 @@ with `--notemp` to keep everything while debugging.
 ```
 results/<sample>/
   read_stats.tsv                      # seqkit stats for the raw (and trimmed) reads -- shared, sample-level
+  polish_groups.tsv                   # pod5/bam only: which selectors picked the same assembly (polished once)
 
   lowest_contig/                      # winner selected by fewest contigs
     summary.txt                       #   human-readable: reads, grid, coverage, BUSCO (before + after polishing if polished)

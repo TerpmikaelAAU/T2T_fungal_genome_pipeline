@@ -1,16 +1,17 @@
-# Last step for pod5/bam entry points: polish the winning assembly (for
-# whichever selector is being built -- see Snakefile SELECTORS) using the
-# aligned reads (dorado_align) and their move table. GPU-only. Output is
-# temp() -- final_genome (9_stats.smk) copies it straight into
-# results/{sample}/{selector}/{sample}_{selector}_final.fasta, so this copy
-# is redundant once that exists.
+# Last step for pod5/bam entry points: polish a winning assembly using the
+# aligned reads (dorado_align) and their move table. GPU-only. Runs once per
+# DISTINCT winner (see 6_05_polish_once.smk); polished_assembly then hands
+# the result to every selector that picked it. Output is temp() --
+# final_genome (9_stats.smk) copies it into
+# results/{sample}/{selector}/{sample}_{selector}_final.fasta.
 rule dorado_polish:
     input:
         dorado = dorado_bin,
         a = rules.dorado_align.output.a,
-        b = "data/contig/{input}_{selector}_file.fa",
+        bai = rules.dorado_align.output.bai,  # dorado polish needs the index
+        b = unique_winner,
     output:
-        a = temp("data/dorado_polish/{input}_{selector}.fasta")
+        a = temp("data/dorado_polish_unique/{input}_{selector}.fasta")
     threads:
         16
     resources:

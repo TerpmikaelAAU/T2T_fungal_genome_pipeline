@@ -69,13 +69,40 @@ samples:
     path: example_data/sample_c.bam
     busco_lineage: embryophyta_odb12
 
-# Personal recommendation
-# sample_1:
-#    type: bam
-#    path: bam path per barcode.
-#    porechop: false #would highlyreccomend using this at some point, however it is quite slow
-#
-#  
+  # --------------------------------------------------------------------------
+  # Template for a real fungal genome from ONE basecalled .bam file.
+  # Uncomment, rename my_fungus (it becomes the folder name under results/)
+  # and set `path`. Every key below `path` is optional; the value shown is
+  # the default, so delete any line you don't want to change.
+  # --------------------------------------------------------------------------
+  # my_fungus:
+  #   type: bam
+  #   path: /absolute/path/to/my_fungus.bam  # ONE .bam; merge several first (samtools merge)
+  #
+  #   busco_lineage: fungi_odb12   # or narrower, e.g. ascomycota_odb12 (more genes = stricter
+  #                                # test); `busco --list-datasets` lists them all
+  #
+  #   porechop: true               # adapter trimming; slow on big BAMs -- false skips it
+  #                                # (dorado usually trims adapters already while basecalling)
+  #
+  #   filter:                      # the read-filtering grid: every min_q x min_len pair is
+  #     min_q:   [10, 15, 20]      # one hifiasm assembly (3 x 5 = 15 here, 30 with the
+  #     min_len: [10000, 15000, 20000, 25000, 30000]   # telomere re-run). Omit = global `filter:`
+  #
+  #   ultralong: true              # also give hifiasm reads >= 50 kb as --ul (global
+  #                                # `ultralong:` below); false if few reads are that long
+  #
+  #   dorado_correct: false        # dorado read correction before hifiasm (GPU, slow;
+  #                                # see `dorado_correct:` below for why it's off)
+  #
+  #   subsample: {coverage: 100, genome_size: 40mb}   # coverage cap; omit to use ALL reads
+  #
+  #   organelle: true              # also assemble the mitochondrial genome (default false)
+  #   organelle_type: fungus_mt    # required when organelle: true
+  #
+  # For a bam sample, each final assembly (lowest_contig, highest_busco and,
+  # with telomere: enabled, most_t2t) is polished with dorado polish -- once
+  # per distinct assembly -- and BUSCO runs before and after polishing.
 # ============================================================================
 dorado:
   version: "2.1.2"
