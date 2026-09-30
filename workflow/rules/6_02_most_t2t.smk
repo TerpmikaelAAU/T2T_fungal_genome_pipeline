@@ -56,6 +56,7 @@ rule most_t2t:
         a = temp("data/contig/{input}_most_t2t_file.fa")
     params:
         min_repeats = TELO.get("min_repeats", 10),
+        min_bp      = lambda w: min_assembly_bp(w.input),
     threads:
         1
     resources:

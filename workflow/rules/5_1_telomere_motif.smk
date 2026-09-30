@@ -39,6 +39,7 @@ rule telomere_explore:
         max_len   = TELO.get("explore_max_len", 12),
         threshold = TELO.get("explore_threshold", 10),
         window    = TELO.get("window", 2000),
+        min_bp    = lambda w: min_assembly_bp(w.input),
     threads:
         2
     resources:
@@ -54,11 +55,19 @@ rule telomere_explore:
         """
         mkdir -p {output.candidates}
         : > {log}
-        # The pass-1 cell with the fewest contigs (same pick as contig_count).
+        # The pass-1 cell with the fewest contigs among those of at least
+        # min_assembly_mb, else among all non-empty ones (same pick as
+        # contig_count, see assembly_size.py).
         best=$(for f in {input.assemblies}; do
             n=$(grep -c "^>" "$f" || true)
-            if [ "$n" -gt 0 ]; then echo "$n $f"; fi
-        done | sort -n | awk 'NR == 1 {{ print $2 }}')
+            if [ "$n" -gt 0 ]; then
+                bp=$(grep -v "^>" "$f" | tr -d '\\n' | wc -c || true)
+                echo "$n $bp $f"
+            fi
+        done | sort -k1,1n -k3,3 | awk -v min={params.min_bp} '
+            $2 >= min && big == "" {{ big = $3 }}
+            any == "" {{ any = $3 }}
+            END {{ print (big != "" ? big : any) }}')
         printf 'rank\\tmotif\\texplore_count\\n' > {output.candidates}/candidates.tsv
         if [ -z "$best" ]; then
             echo "No non-empty pass-1 assembly to explore" >> {log}

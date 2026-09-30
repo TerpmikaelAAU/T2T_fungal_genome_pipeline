@@ -169,6 +169,13 @@ Neither is automatically "more correct"; compare their `summary.txt` files
 (contig count, N50, total length vs. expected genome size, and BUSCO score)
 and use your judgement.
 
+Grid cells smaller than `min_assembly_mb` (config, default 10 Mb) are never
+picked by any selector, and BUSCO is skipped on them (scored 0%): on sparse
+data a single short contig would otherwise "win" fewest contigs, and BUSCO
+can crash on such a gene-less assembly. If no cell reaches it, the selectors
+fall back to every non-empty cell and say so in `logs/select/`. Each
+selector's log there lists every cell's contigs and size.
+
 ### `dorado_correct` vs hifiasm's own correction
 `hifiasm --ont` does its own ONT-specific read correction, and that's the
 default (`dorado_correct.enabled: false`, overridable per sample with the
