@@ -147,7 +147,7 @@ def busco_section(title, busco_dir):
     if summary_file:
         with open(summary_file) as fh:
             for line in fh:
-                if re.search(r"C:|Complete|Fragmented|Missing|Total BUSCO", line):
+                if re.search(r"C:|Complete|Fragmented|Missing|Total BUSCO|BUSCO skipped", line):
                     out.append("  " + line.strip())
                 m = re.search(r"C:([\d.]+)%", line)
                 if m and complete is None:
