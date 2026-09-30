@@ -5,6 +5,8 @@ biology-grounded signal instead of contig count alone.
 
 Written to be forgiving like contig_count: an empty or missing candidate
 scores as absent, not a crash, and only fails if EVERY candidate is unusable.
+Cells smaller than the sample's min_assembly_mb don't count (see
+assembly_size.py).
 """
 
 import glob
@@ -14,6 +16,8 @@ import shutil
 import sys
 
 snakemake = snakemake  # noqa: F821  (injected by Snakemake)
+sys.path.insert(0, snakemake.scriptdir)
+from assembly_size import eligible  # noqa: E402
 
 
 def complete_pct(busco_dir):
@@ -40,15 +44,17 @@ if len(busco_dirs) != len(fasta_files):
         "same order, for pairing by position to be valid."
     )
 
+busco_of = dict(zip(fasta_files, busco_dirs))
 best_score, best_fasta = None, None
-for busco_dir, fasta in zip(busco_dirs, fasta_files):
-    if not os.path.getsize(fasta):
-        continue  # empty/placeholder grid cell -- same as contig_count ignores
-    score = complete_pct(busco_dir)
-    if score is None:
-        continue
-    if best_score is None or score > best_score:
-        best_score, best_fasta = score, fasta
+with open(snakemake.log[0], "w") as log:
+    for fasta, _, _ in eligible(fasta_files, snakemake.params.min_bp, log):
+        score = complete_pct(busco_of[fasta])
+        print(f"{fasta}\tBUSCO C: {score}", file=log)
+        if score is None:
+            continue
+        if best_score is None or score > best_score:
+            best_score, best_fasta = score, fasta
+    print(f"picked: {best_fasta}", file=log)
 
 if best_fasta is None:
     raise ValueError(

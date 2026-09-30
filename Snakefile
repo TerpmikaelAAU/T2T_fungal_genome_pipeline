@@ -110,6 +110,13 @@ def organelle_type(name):
     """GetOrganelle's -F organelle-type flag; required when organelle: true."""
     return SAMPLES[name]["organelle_type"]
 
+def min_assembly_bp(name):
+    """Smallest total assembly size a grid cell needs to be picked by any
+    selector, and to be worth a BUSCO run (config `min_assembly_mb`,
+    per-sample override). See workflow/scripts/assembly_size.py."""
+    mb = SAMPLES[name].get("min_assembly_mb", config.get("min_assembly_mb", 0))
+    return int(float(mb) * 1_000_000)
+
 def wants_dorado_correct(name):
     """Per-sample override of the global dorado_correct.enabled default."""
     return bool(SAMPLES[name].get("dorado_correct", config["dorado_correct"]["enabled"]))

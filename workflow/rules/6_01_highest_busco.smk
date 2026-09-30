@@ -21,12 +21,15 @@ rule busco_grid:
         # on the possibly-polished assembly -- this is purely for selection.
         dir = temp(directory("data/busco_grid/{asm}/{input}_q{minq}_l{minlen}/BUSCO")),
     params:
-        lineage = lambda w: busco_lineage(w.input)
+        lineage = lambda w: busco_lineage(w.input),
+        min_bp  = lambda w: min_assembly_bp(w.input),
     threads:
         12
     resources:
         mem_mb=resources["busco"]["mem_mb"],
         runtime=resources["busco"]["runtime"],
+    log:
+        "logs/busco/grid/{asm}/{input}_q{minq}_l{minlen}.log"
     container:
         "docker://quay.io/biocontainers/busco:6.1.0--pyhdfd78af_2"
     conda:
@@ -34,14 +37,17 @@ rule busco_grid:
     shell:
         """
         mkdir -p {output.dir}
-        if [ ! -s {input.a} ]; then
+        bp=$(grep -v '^>' {input.a} | tr -d '\\n' | wc -c || true)
+        if [ ! -s {input.a} ] || [ "$bp" -lt {params.min_bp} ]; then
             # Empty/placeholder grid cell (see 5_hifiasm.smk's near-empty-input
-            # guard) -- BUSCO can't run on nothing, so score it 0%% instead of
-            # crashing, matching how contig_count treats these cells (ignored).
-            echo "WARNING: {input.a} is empty; skipping BUSCO, writing a placeholder 0%% summary" >&2
-            echo "C:0.0%[S:0.0%,D:0.0%],F:0.0%,M:100.0%,n:0" > {output.dir}/short_summary.placeholder.txt
+            # guard), or one below min_assembly_mb -- BUSCO can crash on a
+            # tiny, gene-less assembly, and the selectors skip these cells
+            # anyway, so score it 0% instead.
+            echo "WARNING: {input.a} is $bp bp (< {params.min_bp}); skipping BUSCO, writing a placeholder 0% summary" > {log}
+            printf '# BUSCO skipped: assembly is %s bp, below min_assembly_mb\\n\\tC:0.0%%[S:0.0%%,D:0.0%%],F:0.0%%,M:100.0%%,n:0\\n' "$bp" \
+                > {output.dir}/short_summary.placeholder.txt
         else
-            busco -i {input.a} -o {output.dir} -l {params.lineage} -m geno -f -c {threads} --metaeuk --tar
+            busco -i {input.a} -o {output.dir} -l {params.lineage} -m geno -f -c {threads} --metaeuk --tar > {log} 2>&1
         fi
         """
 
@@ -63,10 +69,14 @@ rule highest_busco:
         fasta_files = contig_count_candidates,
     output:
         a = temp("data/contig/{input}_highest_busco_file.fa")
+    params:
+        min_bp = lambda w: min_assembly_bp(w.input),
     threads:
         1
     resources:
         mem_mb=resources["fga"]["mem_mb"],
         runtime=resources["fga"]["runtime"],
+    log:
+        "logs/select/{input}_highest_busco.log"
     script:
         "../scripts/pick_highest_busco.py"

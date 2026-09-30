@@ -3,16 +3,17 @@
 highest BUSCO.
 
 Ties go to more telomeric ends, then fewer contigs. Empty placeholder
-cells are skipped; if no cell has any telomere at all, this still picks
+cells, and cells smaller than the sample's min_assembly_mb (see
+assembly_size.py), are skipped; if no cell has any telomere at all, this still picks
 by those tie-breakers (i.e. fewest contigs) rather than failing.
 """
 
-import os
 import shutil
 import sys
 
 snakemake = snakemake  # noqa: F821  (injected by Snakemake)
 sys.path.insert(0, snakemake.scriptdir)
+from assembly_size import eligible  # noqa: E402
 from telomeres import contig_ends, read_search, tally  # noqa: E402
 
 searches = list(snakemake.input.searches)
@@ -21,12 +22,13 @@ if len(searches) != len(fasta_files):
     raise ValueError("searches and fasta_files are out of sync -- both must "
                      "follow grid_assemblies() order.")
 
+search_of = dict(zip(fasta_files, searches))
 best_key, best_fasta = None, None
 with open(snakemake.log[0], "w") as log:
+    cells = eligible(fasta_files, snakemake.params.min_bp, log)
     print("cell\tt2t_contigs\ttelomeric_ends\tcontigs", file=log)
-    for search, fasta in zip(searches, fasta_files):
-        if not os.path.getsize(fasta):
-            continue
+    for fasta, _, _ in cells:
+        search = search_of[fasta]
         ends, t2t, n = tally(contig_ends(read_search(search), snakemake.params.min_repeats))
         if n == 0:
             continue
