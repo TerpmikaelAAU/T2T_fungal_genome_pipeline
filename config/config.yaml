@@ -28,6 +28,8 @@
 #                    below, true/false
 #   subsample      : coverage cap; omit to use ALL reads (recommended)
 #   porechop       : adapter trimming, true/false (default: true)
+#   min_assembly_mb: per-sample override of the global `min_assembly_mb`
+#                    below (smallest assembly, in Mb, worth picking)
 #   filter         : per-sample (min_q, min_len) grid override -- use this
 #                    when one sample needs a different grid than the shared
 #                    default below (see the `filter:` section further down,
@@ -81,6 +83,8 @@ samples:
   #
   #   busco_lineage: fungi_odb12   # or narrower, e.g. ascomycota_odb12 (more genes = stricter
   #                                # test); `busco --list-datasets` lists them all
+  #
+  #   min_assembly_mb: 10          # smaller grid assemblies are never picked (see below)
   #
   #   porechop: false              # adapter trimming (default true); off here because it's
   #                                # slow on big BAMs and dorado already trims while basecalling
@@ -149,6 +153,16 @@ ultralong:
 # empty/near-empty FASTQ trips an illegal instruction in its SIMD kernels).
 # Grid points this small are worthless anyway; guarded in the hifiasm rule.
 hifiasm_min_input_mb: 1
+
+# Smallest total assembly size (Mb) that counts as a genome rather than a
+# fragment. On sparse data some grid cells assemble into a few short contigs:
+# without this, one 50 kb contig "wins" fewest contigs, and BUSCO can crash
+# on such a gene-less assembly. Cells below it are never picked by any
+# selector, and BUSCO is skipped on them (scored 0%). If NO cell reaches it,
+# the selectors fall back to all non-empty cells (warning in logs/select/) so
+# the run still finishes. Keep it well below the expected genome size
+# (fungi: ~10-100 Mb). Per-sample override: `min_assembly_mb:`. 0 = off.
+min_assembly_mb: 10
 
 # ============================================================================
 #  Read-filtering grid
