@@ -4,6 +4,9 @@
 # the result to every selector that picked it. Output is temp() --
 # final_genome (9_stats.smk) copies it into
 # results/{sample}/{selector}/{sample}_{selector}_final.fasta.
+# --ignore-read-groups: a BAM merged from several runs (or a run that was
+# restarted) has one read group per run, which polish otherwise rejects;
+# all of them must still share one basecalling model.
 rule dorado_polish:
     input:
         dorado = dorado_bin,
@@ -20,6 +23,6 @@ rule dorado_polish:
         gres=GPU_GRES,
     shell:
         """
-        "{input.dorado}" polish --batchsize 8 --device cuda:all {input.a} {input.b} > {output.a}
+        "{input.dorado}" polish --batchsize 8 --device cuda:all --ignore-read-groups {input.a} {input.b} > {output.a}
         
         """

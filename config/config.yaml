@@ -10,6 +10,8 @@
 #   pod5  -> a DIRECTORY of .pod5 files
 #   bam   -> a single basecalled .bam file
 #   fastq -> a single .fastq or .fastq.gz file
+# Duplex data (dorado duplex) needs no extra key: the simplex parents of
+# duplex reads are dropped before assembly (README "Duplex data").
 #
 # Optional per-sample keys:
 #   busco_lineage  : BUSCO dataset                          (default: fungi_odb12)
