@@ -3,6 +3,11 @@
 # assembly, producing the input dorado_polish needs. Runs once per DISTINCT
 # winner: {selector} here is the first selector that picked it (see
 # 6_05_polish_once.smk), so identical winners are aligned only once.
+#
+# dorado polish refuses duplex data, so duplex reads (dx:i:1) are dropped
+# here and the duplex ("stereo") read group is removed from the header. The
+# simplex reads left -- including the parents of every duplex read -- still
+# cover all the data. A no-op for simplex BAMs.
 rule dorado_align:
     input:
         dorado = dorado_bin,
@@ -20,10 +25,22 @@ rule dorado_align:
         "docker://quay.io/biocontainers/samtools:1.24--h9dcdb79_1"
     conda:
         "../envs/samtools.yml"
+    log:
+        "logs/dorado_align/{input}_{selector}.log"
     shell:
         """
-        "{input.dorado}" aligner {input.a} {input.b} | samtools sort --threads $(nproc) > {output.a}  
-        echo "align done!"
+        "{input.dorado}" aligner {input.a} {input.b} 2> {log} \
+            | samtools view -u -e '!([dx]==1)' - \
+            | samtools sort --threads $(nproc) -o {output.a}.tmp.bam - 2>> {log}
+        samtools view --no-PG -H {output.a}.tmp.bam > {output.a}.header.sam
+        if grep -q '^@RG.*stereo' {output.a}.header.sam; then
+            echo "duplex BAM: removing the duplex read group(s) for dorado polish" >> {log}
+            grep -v '^@RG.*stereo' {output.a}.header.sam > {output.a}.simplex.sam
+            samtools reheader {output.a}.simplex.sam {output.a}.tmp.bam > {output.a}
+            rm {output.a}.tmp.bam {output.a}.simplex.sam
+        else
+            mv {output.a}.tmp.bam {output.a}
+        fi
+        rm {output.a}.header.sam
         samtools index {output.a}
-
         """
