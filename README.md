@@ -134,6 +134,23 @@ filter:                      # the DEFAULT (min_q, min_len) grid
 | `bam`   | one basecalled `.bam` file | filter -> assemble -> polish |
 | `fastq` | one `.fastq` or `.fastq.gz` file | filter -> assemble (no polishing -- there's no move table to polish with) |
 
+### Duplex data
+Duplex reads from `dorado duplex` work with the `bam` and `fastq` entry
+points, with no extra config. Such a file holds every duplex read *and* the
+two simplex reads it was made from, so the pipeline handles it like this:
+- **Assembly:** the simplex parents of duplex reads are dropped, so each
+  molecule enters hifiasm once -- by the `dx:i:-1` tag for a BAM, and by
+  name for a FASTQ (duplex reads are named `<id1>;<id2>`, so `id1` and
+  `id2` go). Simplex reads without a duplex partner are kept. The numbers
+  are in `logs/bam_to_fastq/<sample>.log` or `logs/prepare_fastq/<sample>.log`.
+  For a FASTQ the read names must be dorado's own; renamed reads can't be
+  matched to their parents.
+- **Polishing:** `dorado polish` rejects duplex data, so it gets the simplex
+  reads only (parents included -- they cover the same molecules) and the
+  duplex read group is removed from the aligned BAM's header.
+
+Simplex data passes through both steps unchanged.
+
 ### The read-filtering grid, and the per-sample override
 `chopper` filters reads at every `(min_q, min_len)` combination in `filter:`,
 and each cell gets assembled independently with `hifiasm`. The top-level
@@ -418,6 +435,8 @@ reference genomes' UFCG profiles are only made once.
   see "Containers" above for what actually runs each tool.
 - `workflow/scripts/summarize.py` -- builds
   `results/<sample>/<selector>/summary.txt`.
+- `workflow/scripts/drop_duplex_parents.sh` -- copies a FASTQ sample's
+  reads without the simplex parents of duplex reads (see "Duplex data").
 - `workflow/scripts/pick_highest_busco.py` -- picks the `highest_busco`
   selector's grid winner (see `rule highest_busco`).
 - `workflow/scripts/telomeres.py` (+ `pick_telomere_motif.py`,
