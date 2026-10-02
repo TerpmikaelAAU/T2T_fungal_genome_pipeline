@@ -152,19 +152,14 @@ def get_bam(wildcards):
     return (f"data/dorado_basecall/{wildcards.input}.bam"
             if s["type"] == "pod5" else s["path"])
 
-def is_gz_fastq(name):
-    s = SAMPLES[name]
-    return s["type"] == "fastq" and s["path"].endswith(".gz")
-
 def get_raw_fastq(wildcards):
-    """Plain-text FASTQ entering porechop/chopper: converted from BAM, decompressed
-    once if the user's fastq.gz would otherwise be re-zcat'd by every grid point, or
-    the raw path as-is when it's already plain text."""
+    """Plain-text FASTQ entering porechop/chopper: converted from BAM, or a
+    FASTQ sample's reads copied once by prepare_fastq -- decompressed, so the
+    user's fastq.gz isn't re-zcat'd by every grid point, and with the simplex
+    parents of duplex reads removed (both entry points)."""
     n = wildcards.input
-    s = SAMPLES[n]
-    if is_gz_fastq(n):
-        return f"data/decompressed/{n}.fastq"
-    return s["path"] if s["type"] == "fastq" else f"data/samtools/Fastq/{n}.fastq"
+    return (f"data/reads/{n}.fastq" if stype(n) == "fastq"
+            else f"data/samtools/Fastq/{n}.fastq")
 
 def trim_adapters(name):
     """Adapter trimming is opt-out per sample (default: on)."""

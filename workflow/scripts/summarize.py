@@ -43,12 +43,8 @@ def label(path):
         return f"assembly {parent}"
     if "contig" in path:
         return "selected assembly"
-    if "decompressed" in path or "samtools/Fastq" in path:
-        return "raw reads"
-    # Whatever the user pointed `samples: <name>: path:` at directly (a
-    # non-gz fastq, or a fastq.gz small enough that read_stage_files skipped
-    # the decompress-once rule for something else's sake -- see Snakefile
-    # get_raw_fastq()).
+    # data/reads/ (FASTQ samples) or data/samtools/Fastq/ (BAM samples):
+    # the input reads, minus the simplex parents of any duplex reads.
     return "raw reads"
 
 
