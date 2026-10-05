@@ -13,10 +13,7 @@ busco_downloads/**
 dorado_model/*
 dorado_model
 results/**
-# migration backups
-workflow/rules.backup.*/
-migrate_rules.sh
+Raw_data/**
 resources/
-Handoff.md
 efficiency_report*
 __pycache__/
