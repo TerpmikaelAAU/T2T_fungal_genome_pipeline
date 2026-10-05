@@ -1,50 +1,5 @@
-# ============================================================================
-#  Per-sample configuration
-# ============================================================================
-#   type: pod5   -> full pipeline: basecall -> correct -> assemble -> polish
-#   type: bam    -> skips basecalling; still polished (polishing needs a BAM)
-#   type: fastq  -> skips basecalling AND polishing; ends at the raw assembly
-#
-# 'path' can be absolute, or relative to the repo root (e.g. the bundled
-# example_data/ used below).
-#   pod5  -> a DIRECTORY of .pod5 files
-#   bam   -> a single basecalled .bam file
-#   fastq -> a single .fastq or .fastq.gz file
-# Duplex data (dorado duplex) needs no extra key: the simplex parents of
-# duplex reads are dropped before assembly (README "Duplex data").
-#
-# Optional per-sample keys:
-#   busco_lineage  : BUSCO dataset                          (default: fungi_odb12)
-#   organelle      : recover an organelle genome, true/false (default: false)
-#   organelle_type : REQUIRED if organelle: true -- what to recover:
-#                    embplant_pt, embplant_mt, embplant_nr, fungus_mt,
-#                    fungus_nr, animal_mt, other_pt, or anonym
-#                    (most fungal samples want fungus_mt)
-#   dorado_correct : per-sample override of the global `dorado_correct.enabled`
-#                    below, true/false. When true, dorado correct itself
-#                    always runs on dorado_correct's own fixed min_q/min_len
-#                    (further down) -- NOT this sample's `filter:` grid. The
-#                    grid's min_len values (min_q is dropped) still apply
-#                    AFTER correction -- see `dorado_correct:` further down
-#   ultralong      : per-sample override of the global `ultralong.enabled`
-#                    below, true/false
-#   subsample      : coverage cap; omit to use ALL reads (recommended)
-#   porechop       : adapter trimming, true/false (default: true)
-#   min_assembly_mb: per-sample override of the global `min_assembly_mb`
-#                    below (smallest assembly, in Mb, worth picking)
-#   filter         : per-sample (min_q, min_len) grid override -- use this
-#                    when one sample needs a different grid than the shared
-#                    default below (see the `filter:` section further down,
-#                    and README.md's "read-filtering grid" section for why
-#                    this matters). If dorado_correct is on for this sample,
-#                    only its min_len values are used (post-correction);
-#                    min_q here is ignored.
-# ---------------------------------------------------------------------------
-# sample_a-d below run by default and use example_data/ -- random,
-# fake reads (see example_data/README.md) that exercise the whole pipeline
-# quickly, with no real assembly at the end. Replace their `path` with your
-# own data, or comment them out and uncomment sample_c/sample_d to try the
-# pod5/bam entry points instead (also fake data).
+# Every setting is explained in README.md, "Configuring a run".
+
 samples:
   sample_a:
     type: fastq
@@ -59,7 +14,6 @@ samples:
     type: fastq
     path: example_data/sample_b.fastq
 
-
   sample_c:
     type: pod5
     path: example_data/sample_d_pod5
@@ -73,185 +27,50 @@ samples:
     path: example_data/sample_c.bam
     busco_lineage: embryophyta_odb12
 
-  # --------------------------------------------------------------------------
-  # Template for a real fungal genome from ONE basecalled .bam file.
-  # Uncomment, rename my_fungus (it becomes the folder name under results/)
-  # and set `path`. Every key below `path` is optional; the values shown are
-  # the defaults except porechop (turned off here).
-  # --------------------------------------------------------------------------
-  # my_fungus:
-  #   type: bam
-  #   path: /absolute/path/to/my_fungus.bam  # ONE .bam; merge several first (samtools merge)
-  #
-  #   busco_lineage: fungi_odb12   # or narrower, e.g. ascomycota_odb12 (more genes = stricter
-  #                                # test); `busco --list-datasets` lists them all
-  #
-  #   min_assembly_mb: 10          # smaller grid assemblies are never picked (see below)
-  #
-  #   porechop: false              # adapter trimming (default true); off here because it's
-  #                                # slow on big BAMs and dorado already trims while basecalling
-  #
-  #   filter:                      # the read-filtering grid: every min_q x min_len pair is
-  #     min_q:   [10, 15, 20]      # one hifiasm assembly (3 x 5 = 15 here, 30 with the
-  #     min_len: [10000, 15000, 20000, 25000, 30000]   # telomere re-run). Omit = global `filter:`
-  #
-  #   ultralong: true              # also give hifiasm reads >= 50 kb as --ul (global
-  #                                # `ultralong:` below); false if few reads are that long
-  #
-  #   dorado_correct: false        # dorado read correction before hifiasm (GPU, slow;
-  #                                # see `dorado_correct:` below for why it's off)
-  #
-  #   # subsample: {coverage: 100, genome_size: 40mb}   # off = use ALL reads (default);
-  #                                # remove the inner '# ' to cap coverage instead
-  #
-  #   organelle: false             # true = also assemble the mitochondrial genome, and then
-  #                                # also set organelle_type: fungus_mt
-  #
-  # For a bam sample, each final assembly (lowest_contig, highest_busco and,
-  # with telomere: enabled, most_t2t) is polished with dorado polish -- once
-  # per distinct assembly -- and BUSCO runs before and after polishing.
-# ============================================================================
 dorado:
   version: "2.1.2"
-  # path: /my/own/dorado/bin/dorado    # uncomment to skip the download
 
 dorado_correct:
-  # hifiasm --ont does its own ONT-specific read correction, which this
-  # pipeline relies on by default. On one low-N50 (~5 kb) test dataset, a
-  # real GPU run of dorado correct discarded ~85% of reads -- too little
-  # coverage left for hifiasm to assemble anything useful. It may do better
-  # on data with a longer read N50. This is the default for every sample;
-  # override per sample with the `dorado_correct: true/false` key above.
-  #
-  # When this is on: reads are filtered ONCE with the fixed min_q/min_len
-  # below and fed into dorado correct -- NOT the filter grid below (dorado
-  # correct has no use for a swept min_q). Its FASTA output is padded with a
-  # placeholder quality string afterward just so hifiasm can read it as
-  # FASTQ, then filtered AGAIN, this time by the filter grid's min_len
-  # values only (min_q is dropped -- correction's output has no per-base
-  # quality of its own for it to filter on) -- each length becomes a
-  # separate assembly, same as any other sample's grid.
   enabled: false
   min_q: 10
   min_len: 10000
-  # Smaller index_size = less RAM per block = more blocks. 4G is a safe start.
   index_size: "4G"
-  # Overlap (--to-paf) always runs on CPU on the big-memory nodes.
-  # Set to "cpu" to keep inference off the GPU as well.
   inference_device: "cuda:all"
 
-# hifiasm's --ul input: a second, fixed-cutoff read set (independent of the
-# filter grid above) fed to hifiasm alongside each grid cell's main input.
-# Off by default for every sample -- override per sample with the
-# `ultralong: true/false` key above. Check there's enough coverage above
-# min_len to be worth it before enabling: on one large test dataset, only
-# ~3.5x coverage remained above 20 kb, which argued against it there.
 ultralong:
   enabled: true
   min_q: 10
   min_len: 50000
 
-# Below this size hifiasm SIGILLs instead of failing informatively (an
-# empty/near-empty FASTQ trips an illegal instruction in its SIMD kernels).
-# Grid points this small are worthless anyway; guarded in the hifiasm rule.
 hifiasm_min_input_mb: 1
 
-# Smallest total assembly size (Mb) that counts as a genome rather than a
-# fragment. On sparse data some grid cells assemble into a few short contigs:
-# without this, one 50 kb contig "wins" fewest contigs, and BUSCO can crash
-# on such a gene-less assembly. Cells below it are never picked by any
-# selector, and BUSCO is skipped on them (scored 0%). If NO cell reaches it,
-# the selectors fall back to all non-empty cells (warning in logs/select/) so
-# the run still finishes. Keep it well below the expected genome size
-# (fungi: ~10-100 Mb). Per-sample override: `min_assembly_mb:`. 0 = off.
 min_assembly_mb: 10
 
-# ============================================================================
-#  Read-filtering grid
-# ============================================================================
-# chopper applies BOTH cutoffs in one pass. Every (min_q, min_len) combination
-# below is assembled independently; contig_count picks the best result across
-# the whole grid.
-#
-# This is the DEFAULT grid, used by any sample that doesn't set its own
-# `filter:` block (see sample_a above, which overrides it to a single
-# q20_l1000 cell instead of the full grid below).
 filter:
   min_q:   [10, 15, 20]
   min_len: [10000, 15000, 20000, 25000, 30000]
 
-# ============================================================================
-#  Telomeres
-# ============================================================================
-# Finds each sample's telomere motif itself (works for any genome, not just
-# TTAGGG), reports telomeres on every final assembly, and adds a third grid
-# winner, most_t2t: the assembly with the most telomere-to-telomere contigs.
-#   1. `tidk explore` on the fewest-contigs assembly lists candidate repeat
-#      units near contig ends; the top `top_motifs` are each checked with
-#      `tidk search`, and the one that caps the most contig ends wins.
-#   2. If that motif covers >= rerun_min_fraction of all telomeric ends any
-#      candidate found (and at least rerun_min_ends ends), every grid cell is
-#      re-assembled with `hifiasm --telo-m <motif>`, and all selectors choose
-#      across both hifiasm runs. This doubles the hifiasm cost when it fires.
-# Output: results/<sample>/telomere_motif_candidates.tsv, and per selector
-# telomeres.tsv, telomeres/*.svg and a TELOMERES section in summary.txt.
 telomere:
   enabled: true
-  top_motifs: 10          # explore candidates checked with tidk search
-  explore_min_len: 5      # repeat-unit lengths tidk explore tries
+  top_motifs: 10
+  explore_min_len: 5
   explore_max_len: 12
-  explore_threshold: 10   # min repeat units in a row for explore to count a run
-                          # (tidk's own default, 100, misses short fungal telomeres)
-  window: 2000            # tidk search window (bp)
-  min_repeats: 10         # repeats in a contig's terminal window = telomeric end
+  explore_threshold: 10
+  window: 2000
+  min_repeats: 10
   rerun_hifiasm: true
   rerun_min_fraction: 0.8
   rerun_min_ends: 4
-  fallback_motif: TTAGGG  # used only if explore finds no telomeres at all
+  fallback_motif: TTAGGG
 
-# ============================================================================
-#  Contamination screen
-# ============================================================================
-# Tiara labels every contig of each final assembly as eukarya, bacteria,
-# archaea, organelle or unknown; summary.txt lists any bacterial/archaeal
-# contigs as possible contamination. Report only -- nothing is removed.
-# Small and fast (no big database, unlike NCBI FCS-GX); installed once into
-# resources/ on first use.
 contamination:
   enabled: true
-  min_len: 3000   # Tiara doesn't classify contigs shorter than this
+  min_len: 3000
 
-# ============================================================================
-#  Phylogeny
-# ============================================================================
-# One protein tree (UFCG core genes -> MAFFT -> FastTree) placing every
-# sample's two final assemblies (lowest_contig + highest_busco) among ONE
-# NCBI genome per genus of `taxon`. The NCBI download and profiling of those
-# reference genomes need no samples, so they run in parallel with everything
-# else from the start; only the samples' profiles and the tree itself wait
-# for the assemblies. Output: results/phylogeny/.
-#
-# Cost, all of Fungi: a few thousand genomes (~100 GB download) and one UFCG
-# profile job per genome. Both are kept, so they only ever run once. Delete
-# data/phylogeny/ to start over, e.g. after changing taxon.
-#
-# Skipped automatically when every sample is bundled example_data/.
 phylogeny:
   enabled: false
-  # Any NCBI taxon name or taxid, e.g. "Fungi", "Ascomycota", "Eurotiomycetes".
-  # UFCG's core genes are fungal -- this tree doesn't suit oomycetes.
   taxon: "Fungi"
 
-# ============================================================================
-#  Annotation (BAGS)
-# ============================================================================
-# The BAGS pipeline's steps on every final assembly (all selectors):
-# geneML gene prediction -> antiSMASH secondary-metabolite gene clusters
-# (using geneML's genes) -> BUSCO on the predicted proteins. Output per
-# assembly in results/<sample>/<selector>/annotation/, and one table over
-# all of them in results/annotation_summary.tsv.
-# First run also installs geneML (from PyPI) and downloads the antiSMASH
-# databases into resources/, once. Off by default.
 bags:
   enabled: false
   geneml_version: "1.1.0"
