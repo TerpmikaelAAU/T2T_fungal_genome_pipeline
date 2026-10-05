@@ -23,6 +23,22 @@ def filtered_read_stats_files(wildcards):
             for q in grid["min_q"] for l in grid["min_len"]]
 
 
+def dorado_read_stats_files(wildcards):
+    """With dorado_correct on: the reads going into dorado correct and the
+    corrected reads before the min_len sweep. Empty otherwise."""
+    n = wildcards.input
+    if not wants_dorado_correct(n):
+        return []
+    return [f"data/read_stats/{n}_dorado_{stage}.tsv" for stage in ("in", "out")]
+
+
+def dorado_stage_reads(wildcards):
+    n = wildcards.input
+    if wildcards.stage == "in":
+        return get_dorado_correct_input(wildcards)
+    return f"data/seqtk/fasta_to_fastq/{n}.fastq"
+
+
 # Measures exactly what hifiasm gets for one grid cell (chopper output,
 # rasusa-capped, or length-filtered dorado-corrected reads). One small job per
 # cell rather than one job over all of them, so each cell's temp() FASTQ can
@@ -48,9 +64,35 @@ rule filtered_read_stats:
         """
 
 
+# How much dorado correct keeps: its input (one fixed min_q/min_len cutoff)
+# and its output. Separate small jobs, like filtered_read_stats, so neither
+# temp() FASTQ is kept on disk waiting for read_stats.
+rule dorado_read_stats:
+    input:
+        a = dorado_stage_reads
+    output:
+        a = "data/read_stats/{input}_dorado_{stage}.tsv"
+    wildcard_constraints:
+        stage = r"in|out"
+    threads:
+        4
+    resources:
+        mem_mb = scaled_mem(0.1, 8000),
+        runtime = 120,
+    container:
+        "docker://quay.io/biocontainers/seqkit:2.13.0--he881be0_0"
+    conda:
+        "../envs/seqkit.yml"
+    shell:
+        """
+        seqkit stats -a -T -j {threads} {input.a} > {output.a}
+        """
+
+
 rule read_stats:
     input:
         reads = read_stage_files,
+        dorado = dorado_read_stats_files,
         cells = filtered_read_stats_files,
     output:
         a = "results/{input}/read_stats.tsv"
@@ -66,7 +108,7 @@ rule read_stats:
     shell:
         """
         seqkit stats -a -T -j {threads} {input.reads} > {output.a}
-        for f in {input.cells}; do tail -n +2 "$f" >> {output.a}; done
+        for f in {input.dorado} {input.cells}; do tail -n +2 "$f" >> {output.a}; done
         """
 
 
