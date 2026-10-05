@@ -98,12 +98,13 @@ out.append("")
 out.append("-" * 70)
 out.append("READS")
 out.append("-" * 70)
-out.append(f"{'stage':<32}{'reads':>12}{'bases':>16}{'N50':>12}")
+# Read N50s are a few kb and read sets tens of Gb, so raw bp hide the scale.
+out.append(f"{'stage':<32}{'reads':>12}{'bases (Gb)':>16}{'N50 (kb)':>12}")
 for row in reads:
     out.append(f"{label(row.get('file','')):<32}"
                f"{as_int(row.get('num_seqs')):>12,}"
-               f"{as_int(row.get('sum_len')):>16,}"
-               f"{as_int(row.get('N50')):>12,}")
+               f"{as_int(row.get('sum_len')) / 1e9:>16,.2f}"
+               f"{as_int(row.get('N50')) / 1e3:>12,.1f}")
 out.append("")
 
 n_candidates = sum(1 for row in asm if "contig/" not in row.get("file", ""))
