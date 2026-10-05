@@ -27,7 +27,7 @@ configfile: "config/config.yaml"
 #                                plus the optional all-sample phylogeny and
 #                                annotation (BAGS)
 #
-# See config/config.yaml for what's configurable and README.md for how to
+# See README.md ("Configuring a run") for what's configurable and how to
 # run this.
 
 # ============================================================================
@@ -51,7 +51,7 @@ for _name, _s in SAMPLES.items():
     if _s.get("organelle") and not _s.get("organelle_type"):
         raise WorkflowError(
             f"Sample '{_name}': organelle: true requires 'organelle_type' "
-            f"(e.g. fungus_mt) -- see config/config.yaml."
+            f"(e.g. fungus_mt) -- see README.md, 'Per-sample keys'."
         )
 
 # minq/minlen identify one cell of the read-filtering grid (see config.yaml
@@ -194,7 +194,7 @@ def get_assembly_input(wildcards):
     """FASTQ fed to hifiasm for one grid cell: hifiasm --ont does its own
     ONT-specific correction, and on at least one large low-N50 dataset
     dorado correct discarded the large majority of reads and made the
-    assembly worse (see config.yaml `dorado_correct`), so that's off by
+    assembly worse (see README.md on `dorado_correct`), so that's off by
     default.
 
     When dorado_correct IS on for this sample, hifiasm instead gets the

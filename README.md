@@ -86,46 +86,73 @@ sample paths when you're ready for a real run.
 
 ## Configuring a run
 
-All configuration lives in `config/config.yaml`; it's commented in place, but
-the shape is:
+All configuration lives in `config/config.yaml`. The file itself holds only
+the settings; this section explains them.
+
+### Adding your own sample
+Each entry under `samples:` is one genome; its name becomes the folder name
+under `results/`. Comment out or delete the example samples, and add your
+own. A real fungal genome from one basecalled BAM, with every optional key
+at its default except `porechop`:
 
 ```yaml
 samples:
-  my_sample:
-    type: fastq            # pod5 | bam | fastq -- see entry points below
-    path: /abs/path/to/data   # or a path relative to the repo root
-    busco_lineage: fungi_odb12   # optional, default shown
-    organelle: false              # optional, recover an organelle genome
-    organelle_type: fungus_mt     # REQUIRED if organelle: true -- GetOrganelle's -F type
-    dorado_correct: false         # optional, per-sample override of dorado_correct.enabled below
-    ultralong: false               # optional, per-sample override of ultralong.enabled below
-    subsample: {coverage: 100, genome_size: 40mb}  # optional coverage cap
-    porechop: true                 # optional, adapter trimming (default on)
-    filter:                        # optional, PER-SAMPLE grid override
-      min_q:   [20]
-      min_len: [1000]
-
-dorado:
-  version: "2.1.2"          # or: path: /my/own/dorado/bin/dorado
-
-dorado_correct:
-  enabled: false             # hifiasm --ont does its own correction; see below
-  min_q: 10                  # fixed cutoff fed INTO dorado correct
-  min_len: 10000              # (the filter grid's min_len still applies AFTER)
-  index_size: "4G"
-  inference_device: "cuda:all"
-
-ultralong:
-  enabled: false             # hifiasm --ul, a second fixed-cutoff read set
-  min_q: 10
-  min_len: 50000
-
-hifiasm_min_input_mb: 1      # below this, skip hifiasm instead of SIGILL-ing
-
-filter:                      # the DEFAULT (min_q, min_len) grid
-  min_q:   [10, 15, 20]
-  min_len: [1000, 2500, 7500, 10000]
+  my_fungus:
+    type: bam
+    path: /absolute/path/to/my_fungus.bam
+    busco_lineage: fungi_odb12
+    min_assembly_mb: 10
+    porechop: false
+    filter:
+      min_q:   [10, 15, 20]
+      min_len: [10000, 15000, 20000, 25000, 30000]
+    ultralong: true
+    dorado_correct: false
+    # subsample: {coverage: 100, genome_size: 40mb}
+    organelle: false
 ```
+
+Keep cluster paths for your own runs out of commits: the dry-run check (see
+"Automatic checks") plans the committed config, and fails on a path that
+only exists on the cluster.
+
+### Per-sample keys
+| Key | Default | What it does |
+|---|---|---|
+| `type` | required | `pod5`, `bam` or `fastq`; see "Entry points" below. |
+| `path` | required | A directory of `.pod5` files, ONE basecalled `.bam` (merge several first with `samtools merge`), or one `.fastq`/`.fastq.gz`. Absolute, or relative to the repo root. |
+| `busco_lineage` | `fungi_odb12` | BUSCO dataset; see "BUSCO lineage" below. A narrower one (e.g. `ascomycota_odb12`) has more genes and is a stricter test. |
+| `min_assembly_mb` | global `min_assembly_mb` | Smallest grid assembly worth picking, for this sample. |
+| `porechop` | `true` | Adapter trimming with porechop_abi. Off makes sense for big BAMs: it's slow, and dorado already trims while basecalling. |
+| `filter` | global `filter` | This sample's own `(min_q, min_len)` grid; see "The read-filtering grid" below. |
+| `ultralong` | global `ultralong.enabled` | Also give hifiasm the reads above `ultralong.min_len` as `--ul`. Turn off if few reads are that long. |
+| `dorado_correct` | global `dorado_correct.enabled` | dorado read correction before hifiasm; see "`dorado_correct` vs hifiasm's own correction" below. |
+| `subsample` | off (all reads) | Coverage cap with rasusa, e.g. `{coverage: 100, genome_size: 40mb}`. Using all reads is recommended. |
+| `organelle` | `false` | Also recover an organelle genome with Flye + GetOrganelle. |
+| `organelle_type` | required if `organelle: true` | GetOrganelle's `-F` type: `embplant_pt`, `embplant_mt`, `embplant_nr`, `fungus_mt`, `fungus_nr`, `animal_mt`, `other_pt` or `anonym`. Most fungal samples want `fungus_mt`. |
+
+Duplex data (`dorado duplex`) needs no extra key; see "Duplex data" below.
+
+### Global settings
+| Setting | Value shipped | What it does |
+|---|---|---|
+| `dorado.version` | `"2.1.2"` | dorado release fetched on first use. Replace with `path: /my/own/dorado/bin/dorado` to use your own install and skip the download. |
+| `dorado_correct.enabled` | `false` | Default for every sample's `dorado_correct`. |
+| `dorado_correct.min_q`, `min_len` | `10`, `10000` | The one fixed cutoff applied to reads going INTO dorado correct. |
+| `dorado_correct.index_size` | `"4G"` | Smaller = less RAM per block, but more blocks. 4G is a safe start. |
+| `dorado_correct.inference_device` | `"cuda:all"` | Overlap always runs on CPU on the big-memory nodes; set `"cpu"` to keep inference off the GPU too. |
+| `ultralong.enabled` | `true` | Default for every sample's `ultralong`. |
+| `ultralong.min_q`, `min_len` | `10`, `50000` | The fixed cutoff for the `--ul` read set, independent of the grid. Check there's enough coverage above `min_len` first: on one large test dataset only ~3.5x remained above 20 kb. |
+| `hifiasm_min_input_mb` | `1` | Grid cells with less read data than this skip hifiasm and get an empty placeholder: on a near-empty FASTQ hifiasm crashes with an illegal instruction instead of an error. |
+| `min_assembly_mb` | `10` | Smallest total assembly (Mb) that counts as a genome; see the end of "The read-filtering grid". Keep it well below the expected genome size (fungi: ~10-100 Mb). `0` turns it off. |
+| `filter.min_q`, `min_len` | `[10, 15, 20]`, `[10000, ..., 30000]` | The default read-filtering grid. |
+| `telomere.*` | see "Telomeres" | |
+| `contamination.enabled` | `true` | Tiara screen; see "Contamination screen". |
+| `contamination.min_len` | `3000` | Tiara doesn't classify contigs shorter than this. |
+| `phylogeny.enabled` | `false` | Genus-level tree; see "Phylogeny". |
+| `phylogeny.taxon` | `"Fungi"` | Any NCBI taxon name or taxid, e.g. `Ascomycota`, `Eurotiomycetes`. Changing it means deleting `data/phylogeny/`. |
+| `bags.enabled` | `false` | Annotation; see "Annotation (BAGS)". |
+| `bags.geneml_version` | `"1.1.0"` | geneML version installed from PyPI. |
 
 ### Entry points (`type:`)
 | `type:` | `path:` must be | Runs |
@@ -248,8 +275,12 @@ An end counts as telomeric with at least `min_repeats` (10) motif copies in
 its terminal `window` (2000 bp). If no candidate finds any telomere,
 `fallback_motif` (TTAGGG) is used for the counts and hifiasm is not re-run.
 
+`tidk explore` tries repeat units `explore_min_len` to `explore_max_len`
+(5-12) bp long, and counts a run from `explore_threshold` (10) units in a
+row; tidk's own default of 100 misses short fungal telomeres.
+
 ### Phylogeny
-With `phylogeny: enabled: true` (the default), the pipeline also builds one
+With `phylogeny: enabled: true` (off in the shipped config), the pipeline also builds one
 tree over all samples: both final assemblies per sample (`lowest_contig` and
 `highest_busco`) plus **one NCBI genome for every genus** under
 `phylogeny: taxon:` (default `Fungi`). It's a protein tree from
