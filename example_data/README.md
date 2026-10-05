@@ -14,7 +14,7 @@ pipeline at real data. Don't expect a real assembly from these.
 
 All reads are random bases/signal, so they're far too small and too low
 coverage for hifiasm to assemble (it will correctly skip them -- see
-`hifiasm_min_input_mb` in `config/config.yaml`). `sample_c.bam` has no
+`hifiasm_min_input_mb` in the main README). `sample_c.bam` has no
 real move table, so polishing on it will not produce a meaningful result.
 `sample_d_pod5` has no real signal, so basecalling it will not produce
 meaningful reads either.

@@ -1,7 +1,7 @@
 # The main nuclear assembler, run independently per (min_q, min_len) grid
 # cell (contig_count picks the winner across cells -- see 6_00). `--ont` mode
 # does hifiasm's own ONT-specific correction, so dorado_correct is off by
-# default (see config.yaml `dorado_correct`); `--ul` optionally adds a
+# default (see README.md on `dorado_correct`); `--ul` optionally adds a
 # second, fixed-cutoff ultralong read set (config `ultralong`).
 rule hifiasm:
     input:
