@@ -37,6 +37,15 @@ def label(path):
     parent = os.path.basename(os.path.dirname(path))
     if "porechopped" in path:
         return "after adapter trimming"
+    # Per grid cell: the reads hifiasm got (see rule filtered_read_stats).
+    cell = re.search(r"_q(\d+)_l(\d+)\.fastq$", base)
+    if "data/chopper/" in path and cell:
+        return f"filtered q{cell[1]} l{cell[2]}"
+    if "data/rasusa/" in path and cell:
+        return f"subsampled q{cell[1]} l{cell[2]}"
+    corrected = re.search(r"_l(\d+)\.fastq$", base)
+    if "data/dorado_filtered/" in path and corrected:
+        return f"corrected l{corrected[1]}"
     if "hifiasm_telo" in path:
         return f"assembly {parent} +telo"
     if "hifiasm" in path:
@@ -66,7 +75,7 @@ asm = read_tsv(snakemake.input.asm)
 raw_bases = 0
 for row in reads:
     f = row.get("file", "")
-    if "porechopped" not in f and "hifiasm" not in f and "contig" not in f:
+    if f.startswith(("data/reads/", "data/samtools/Fastq/")):
         raw_bases = as_int(row.get("sum_len"))
         break
 
@@ -99,12 +108,15 @@ out.append("-" * 70)
 out.append("READS")
 out.append("-" * 70)
 # Read N50s are a few kb and read sets tens of Gb, so raw bp hide the scale.
-out.append(f"{'stage':<32}{'reads':>12}{'bases (Gb)':>16}{'N50 (kb)':>12}")
+out.append(f"{'stage':<26}{'reads':>12}{'bases (Gb)':>12}{'% of raw':>10}{'N50 (kb)':>10}")
 for row in reads:
-    out.append(f"{label(row.get('file','')):<32}"
+    bases = as_int(row.get("sum_len"))
+    share = f"{100 * bases / raw_bases:.1f}" if raw_bases else "-"
+    out.append(f"{label(row.get('file','')):<26}"
                f"{as_int(row.get('num_seqs')):>12,}"
-               f"{as_int(row.get('sum_len')) / 1e9:>16,.2f}"
-               f"{as_int(row.get('N50')) / 1e3:>12,.1f}")
+               f"{bases / 1e9:>12,.2f}"
+               f"{share:>10}"
+               f"{as_int(row.get('N50')) / 1e3:>10,.1f}")
 out.append("")
 
 n_candidates = sum(1 for row in asm if "contig/" not in row.get("file", ""))

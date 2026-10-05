@@ -6,22 +6,52 @@
 # read/assembly stats rules list files that are otherwise transient.
 
 def read_stage_files(wildcards):
-    """Every read file worth measuring, for this sample's entry point.
-
-    Filtering/correction now fork into a (min_q, min_len) grid (see
-    config.yaml `filter:`), so there is no longer a single "the chopped
-    file" or "the corrected file" -- those per-grid-cell stats live in
-    assembly_stats.tsv instead, alongside each candidate's contig stats."""
+    """The reads before the filtering grid: the input reads, and the
+    adapter-trimmed reads when porechop is on for this sample."""
     n = wildcards.input
-    f = {"raw": get_raw_fastq(wildcards)}
+    f = [get_raw_fastq(wildcards)]
     if trim_adapters(n):
-        f["porechopped"] = f"data/porechopped/{n}.fastq"
+        f.append(f"data/porechopped/{n}.fastq")
     return f
+
+
+def filtered_read_stats_files(wildcards):
+    """One stats row per grid cell, in the same order as grid_assemblies()."""
+    n = wildcards.input
+    grid = filter_grid(n)
+    return [f"data/read_stats/{n}_q{q}_l{l}.tsv"
+            for q in grid["min_q"] for l in grid["min_len"]]
+
+
+# Measures exactly what hifiasm gets for one grid cell (chopper output,
+# rasusa-capped, or length-filtered dorado-corrected reads). One small job per
+# cell rather than one job over all of them, so each cell's temp() FASTQ can
+# be deleted as soon as its own hifiasm and stats are done instead of every
+# cell's reads piling up on disk at once.
+rule filtered_read_stats:
+    input:
+        a = get_assembly_input
+    output:
+        a = "data/read_stats/{input}_q{minq}_l{minlen}.tsv"
+    threads:
+        4
+    resources:
+        mem_mb = scaled_mem(0.1, 8000),
+        runtime = 120,
+    container:
+        "docker://quay.io/biocontainers/seqkit:2.13.0--he881be0_0"
+    conda:
+        "../envs/seqkit.yml"
+    shell:
+        """
+        seqkit stats -a -T -j {threads} {input.a} > {output.a}
+        """
 
 
 rule read_stats:
     input:
-        unpack(read_stage_files)
+        reads = read_stage_files,
+        cells = filtered_read_stats_files,
     output:
         a = "results/{input}/read_stats.tsv"
     threads:
@@ -35,7 +65,8 @@ rule read_stats:
         "../envs/seqkit.yml"
     shell:
         """
-        seqkit stats -a -T -j {threads} {input} > {output.a}
+        seqkit stats -a -T -j {threads} {input.reads} > {output.a}
+        for f in {input.cells}; do tail -n +2 "$f" >> {output.a}; done
         """
 
 
