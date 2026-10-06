@@ -43,6 +43,8 @@ def label(path):
         return f"filtered q{cell[1]} l{cell[2]}"
     if "data/rasusa/" in path and cell:
         return f"subsampled q{cell[1]} l{cell[2]}"
+    if "data/seqtk/fasta_to_fastq/" in path:
+        return "dorado corrected"
     corrected = re.search(r"_l(\d+)\.fastq$", base)
     if "data/dorado_filtered/" in path and corrected:
         return f"corrected l{corrected[1]}"
