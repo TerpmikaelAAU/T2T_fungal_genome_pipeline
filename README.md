@@ -410,7 +410,7 @@ with `--notemp` to keep everything while debugging.
 
 ```
 results/<sample>/
-  read_stats.tsv                      # seqkit stats for the raw (and trimmed) reads and what hifiasm got per grid cell
+  read_stats.tsv                      # seqkit stats for the raw (and trimmed) reads, dorado correct's input and output (when on), and what hifiasm got per grid cell
   polish_groups.tsv                   # pod5/bam only: which selectors picked the same assembly (polished once)
 
   lowest_contig/                      # winner selected by fewest contigs
