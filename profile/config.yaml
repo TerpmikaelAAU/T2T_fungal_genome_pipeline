@@ -58,6 +58,9 @@ rerun-triggers: [mtime]
 # guards against near-empty input directly (see `hifiasm_min_input_mb` in
 # config.yaml), so a real transient failure still gets one retry here.
 retries: 1
+# Print a failed job's log files (the rule's log: and its SLURM log) straight
+# into the Snakemake output, instead of only naming them.
+show-failed-logs: true
 # Submission RATE limit -- protects the scheduler from a burst.
 max-jobs-per-second: 5
 max-status-checks-per-second: 5
