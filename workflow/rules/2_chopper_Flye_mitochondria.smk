@@ -7,10 +7,11 @@ rule chopper_flye:
         a = get_trimmed_fastq
     output:
         a = temp("data/chopper/Flye/{input}.fastq")
+    # Same sizing as rule chopper (2_chopper.smk).
     threads:
-        12
+        2
     resources:
-        mem_mb=scaled_mem(0.15, 8000),
+        mem_mb=scaled_mem(0, 4000),
         runtime=resources["chopper"]["runtime"]
     container:
         "docker://quay.io/biocontainers/chopper:0.13.0--h7f49ad2_0"

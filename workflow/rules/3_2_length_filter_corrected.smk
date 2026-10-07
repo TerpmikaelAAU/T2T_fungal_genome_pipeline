@@ -10,10 +10,11 @@ rule length_filter_corrected:
         a = get_corrected_fastq
     output:
         a = temp("data/dorado_filtered/{input}_l{minlen}.fastq")
+    # Same sizing as rule chopper (2_chopper.smk).
     threads:
-        12
+        2
     resources:
-        mem_mb=scaled_mem(0.15, 16000),
+        mem_mb=scaled_mem(0, 4000),
         runtime=resources["chopper"]["runtime"]
     container:
         "docker://quay.io/biocontainers/chopper:0.13.0--h7f49ad2_0"

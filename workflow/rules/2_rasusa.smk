@@ -9,8 +9,9 @@ rule rasusa:
     params:
         cov = lambda w: SAMPLES[w.input]["subsample"]["coverage"],
         gsize = lambda w: SAMPLES[w.input]["subsample"]["genome_size"],
+    # rasusa is single-threaded.
     threads:
-        12
+        1
     resources:
         mem_mb=resources["rasusa"]["mem_mb"],
         runtime=resources["rasusa"]["runtime"]
