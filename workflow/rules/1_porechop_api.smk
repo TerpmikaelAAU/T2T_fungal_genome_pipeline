@@ -13,10 +13,14 @@ rule porechop_abi:
         a = get_raw_fastq
     output:
         a = temp("data/porechopped/{input}.fastq")
+    # Mostly single-threaded (0.45% CPU efficiency on 64 threads without an
+    # explicit --threads); only the adapter alignment uses --threads. Memory:
+    # on a ~100 GB input, 1.5x (150 GB) was OOM-killed and the 3x retry
+    # finished, so start at 2.5x (5x on retry).
     threads:
-        75
+        16
     resources:
-        mem_mb=scaled_mem(1.5, 32000),
+        mem_mb=scaled_mem(2.5, 32000),
         runtime=scaled_time(0.05, 600),
     container:
         "docker://quay.io/biocontainers/porechop_abi:0.5.0--py312h5e9d817_5"
@@ -24,5 +28,5 @@ rule porechop_abi:
         "../envs/porechop_abi.yml"
     shell:
         """
-        porechop_abi --ab_initio -i {input.a} -o {output.a}
+        porechop_abi --ab_initio --threads {threads} -i {input.a} -o {output.a}
         """
