@@ -58,7 +58,7 @@ rule tiara:
     threads:
         8
     resources:
-        mem_mb  = 16000,
+        mem_mb  = 6000,
         runtime = 240,
     log:
         "logs/contamination/{input}_{selector}_tiara.log"

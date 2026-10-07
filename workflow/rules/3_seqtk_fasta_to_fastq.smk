@@ -8,10 +8,11 @@ rule seqtk_fasta_to_fastq:
         a = "data/dorado/{input}.fasta"
     output:
         a = temp("data/seqtk/fasta_to_fastq/{input}.fastq")
+    # seqtk seq is single-threaded and streams.
     threads:
-        10
+        1
     resources:
-        mem_mb=resources["seqkit"]["mem_mb"],
+        mem_mb=scaled_mem(0, 2000),
         runtime=resources["seqkit"]["runtime"]
     container:
         "docker://quay.io/biocontainers/seqtk:1.5--h577a1d6_1"

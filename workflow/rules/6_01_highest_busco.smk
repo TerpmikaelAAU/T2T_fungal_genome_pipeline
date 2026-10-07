@@ -12,6 +12,18 @@
 # COST WARNING: this runs BUSCO on every grid cell, not just the eventual
 # winner -- for a 3x4=12-cell grid that's 12 BUSCO runs instead of 1.
 
+def busco_grid_runs(wildcards, input):
+    """False when the cell's assembly is below min_assembly_mb (e.g. an
+    empty hifiasm_telo placeholder), so the job only writes the 0% summary
+    below -- then it gets 1 thread and 1 GB instead of BUSCO's 12 threads and
+    14 GB. A FASTA file is never smaller than its base count, so a cell that
+    really needs BUSCO is never undersized."""
+    try:
+        return os.path.getsize(input.a) >= min_assembly_bp(wildcards.input)
+    except OSError:
+        return True
+
+
 rule busco_grid:
     input:
         a = "data/{asm}/{input}_q{minq}_l{minlen}/{input}_q{minq}_l{minlen}.fa"
@@ -24,10 +36,10 @@ rule busco_grid:
         lineage = lambda w: busco_lineage(w.input),
         min_bp  = lambda w: min_assembly_bp(w.input),
     threads:
-        12
+        lambda w, input: 12 if busco_grid_runs(w, input) else 1
     resources:
-        mem_mb=resources["busco"]["mem_mb"],
-        runtime=resources["busco"]["runtime"],
+        mem_mb=lambda w, input: resources["busco"]["mem_mb"] if busco_grid_runs(w, input) else 1000,
+        runtime=lambda w, input: resources["busco"]["runtime"] if busco_grid_runs(w, input) else 10,
     log:
         "logs/busco/grid/{asm}/{input}_q{minq}_l{minlen}.log"
     container:
