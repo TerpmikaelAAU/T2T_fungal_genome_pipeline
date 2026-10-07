@@ -2,14 +2,14 @@
 # contig. Only built when a sample sets `organelle: true` in config.yaml
 # (wants_organelle()); `db` is that sample's required `organelle_type`
 # (GetOrganelle's -F flag, e.g. fungus_mt).
-# NOTE: --config-dir "0.0.1" is NOT a declared Snakemake input -- the
-# "0.0.1" directory must already exist (run rule getorganelle_database
-# first) or this fails with a missing-database error the DAG won't predict.
+# --config-dir is GetOrganelle's reference database, downloaded once by
+# rule getorganelle_database (7_getorganelle_database.smk).
 # NOTE: this output isn't copied into results/{sample}/ -- it's the only
 # copy of the organelle assembly, so don't temp() it.
 rule getorganelle:
     input:
-        a = rules.flye.output.d
+        a = rules.flye.output.d,
+        db = rules.getorganelle_database.output.dir,
     output:
         dir = directory("data/getorganelle/{input}/Mitochondria"),
     params:
@@ -25,6 +25,6 @@ rule getorganelle:
        "../envs/getorganelle.yml"
     shell:
         """
-        get_organelle_from_assembly.py -F {params.db} -g {input.a} --config-dir "0.0.1" -o {output.dir} -t $(nproc) --overwrite
+        get_organelle_from_assembly.py -F {params.db} -g {input.a} --config-dir "{input.db}" -o {output.dir} -t $(nproc) --overwrite
 
         """
