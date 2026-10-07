@@ -8,10 +8,12 @@
 # which is just another (fixed) point on the same (minq, minlen) plane.
 #
 # input.a is always plain text now (see 0_3_decompress.smk) -- no more
-# per-grid-point zcat of the same multi-GB .gz file.
+# per-grid-point zcat of the same multi-GB .gz file. Cells stricter than
+# config `prefilter` read the prefilter cell's output, not the full read set
+# (see chopper_source in the Snakefile).
 rule chopper:
     input:
-        a = get_trimmed_fastq
+        a = get_chopper_input
     output:
         a = temp("data/chopper/{input}_q{minq}_l{minlen}.fastq")
     # chopper is I/O bound: ~0.6 cores busy whatever --threads is (5% CPU
