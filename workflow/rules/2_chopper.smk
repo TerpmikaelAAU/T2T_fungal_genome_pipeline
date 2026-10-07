@@ -14,13 +14,14 @@ rule chopper:
         a = get_trimmed_fastq
     output:
         a = temp("data/chopper/{input}_q{minq}_l{minlen}.fastq")
+    # chopper is I/O bound: ~0.6 cores busy whatever --threads is (5% CPU
+    # efficiency on 12 threads). Its real memory is ~1-2 GB; the efficiency
+    # report's "99% memory" is page cache from streaming the FASTQ, which
+    # fills any limit (it read 99% at 8 GB and again at 16 GB, never OOM).
     threads:
-        12
+        2
     resources:
-        # Floor raised from 8000: a real run's efficiency report showed
-        # chopper sitting at 98.9% memory utilization, one bad read away
-        # from an OOM.
-        mem_mb=scaled_mem(0.15, 16000),
+        mem_mb=scaled_mem(0, 4000),
         runtime=resources["chopper"]["runtime"]
     container:
         "docker://quay.io/biocontainers/chopper:0.13.0--h7f49ad2_0"

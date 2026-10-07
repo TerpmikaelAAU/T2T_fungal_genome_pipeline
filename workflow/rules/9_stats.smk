@@ -39,6 +39,9 @@ def dorado_stage_reads(wildcards):
     return f"data/seqtk/fasta_to_fastq/{n}.fastq"
 
 
+# seqkit stats -j only runs separate FILES in parallel, so a one-file job
+# gets one thread (they ran at 3% CPU efficiency on 4); ~2.5 GB peak.
+#
 # Measures exactly what hifiasm gets for one grid cell (chopper output,
 # rasusa-capped, or length-filtered dorado-corrected reads). One small job per
 # cell rather than one job over all of them, so each cell's temp() FASTQ can
@@ -50,9 +53,9 @@ rule filtered_read_stats:
     output:
         a = "data/read_stats/{input}_q{minq}_l{minlen}.tsv"
     threads:
-        4
+        1
     resources:
-        mem_mb = scaled_mem(0.1, 8000),
+        mem_mb = scaled_mem(0, 4000),
         runtime = 120,
     container:
         "docker://quay.io/biocontainers/seqkit:2.13.0--he881be0_0"
@@ -75,9 +78,9 @@ rule dorado_read_stats:
     wildcard_constraints:
         stage = r"in|out"
     threads:
-        4
+        1
     resources:
-        mem_mb = scaled_mem(0.1, 8000),
+        mem_mb = scaled_mem(0, 4000),
         runtime = 120,
     container:
         "docker://quay.io/biocontainers/seqkit:2.13.0--he881be0_0"
@@ -97,9 +100,9 @@ rule read_stats:
     output:
         a = "results/{input}/read_stats.tsv"
     threads:
-        4
+        2
     resources:
-        mem_mb = scaled_mem(0.1, 8000),
+        mem_mb = scaled_mem(0, 4000),
         runtime = 120,
     container:
         "docker://quay.io/biocontainers/seqkit:2.13.0--he881be0_0"
@@ -124,7 +127,7 @@ rule assembly_stats:
     threads:
         4
     resources:
-        mem_mb = 16000,
+        mem_mb = 2000,
         runtime = 120,
     container:
         "docker://quay.io/biocontainers/seqkit:2.13.0--he881be0_0"
@@ -147,7 +150,7 @@ rule final_genome:
     threads:
         1
     resources:
-        mem_mb = 4000,
+        mem_mb = 1000,
         runtime = 30,
     shell:
         """
@@ -187,7 +190,7 @@ rule summary:
     threads:
         1
     resources:
-        mem_mb = 4000,
+        mem_mb = 1000,
         runtime = 30,
     script:
         "../scripts/summarize.py"

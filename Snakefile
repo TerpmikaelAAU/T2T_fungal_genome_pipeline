@@ -303,7 +303,7 @@ resources = {
     "busco":            {"mem_mb": 14000,  "runtime": 880},  # was 10000; peaked at 9950 (99.5%) on a large test sample
     "rasusa":           {"mem_mb": 5000,   "runtime": 400},
     "chopper":          {"mem_mb": 5000,   "runtime": 400},
-    "fga":              {"mem_mb": 5000,   "runtime": 600},
+    "fga":              {"mem_mb": 2000,   "runtime": 600},  # awk/python over one assembly; peaked at ~180 MB
     "porechop_api":     {"mem_mb": 100000, "runtime": 6000},
     "dorado_basecall":  {"mem_mb": 100000, "runtime": 100800},
     "seqkit":           {"mem_mb": 10000,  "runtime": 6000},
@@ -314,7 +314,7 @@ resources = {
     "correct_overlap":  {"mem_mb": 250000, "runtime": 720},
     "correct_infer":    {"mem_mb": 60000,  "runtime": 480},
     "correct_merge":    {"mem_mb": 5000,   "runtime": 60},
-    "tidk":             {"mem_mb": 8000,   "runtime": 120},
+    "tidk":             {"mem_mb": 2000,   "runtime": 120},  # peaked at ~420 MB (explore)
     # annotation, BAGS (11_annotation_bags.smk)
     "geneml":           {"mem_mb": 30000,  "runtime": 360},
     "antismash":        {"mem_mb": 64000,  "runtime": 360},

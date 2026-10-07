@@ -17,8 +17,10 @@ rule prepare_fastq:
         a = lambda w: SAMPLES[w.input]["path"]
     output:
         a = temp("data/reads/{input}.fastq")
+    # I/O bound: ran at 2.8% CPU efficiency on 8 threads (pigz -d only
+    # parallelises a little; the awk passes are single-threaded).
     threads:
-        8
+        2
     resources:
         mem_mb=scaled_mem(0.05, 4000),
         runtime=scaled_time(0.1, 120),

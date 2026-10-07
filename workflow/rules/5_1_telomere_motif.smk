@@ -41,7 +41,7 @@ rule telomere_explore:
         window    = TELO.get("window", 2000),
         min_bp    = lambda w: min_assembly_bp(w.input),
     threads:
-        2
+        1
     resources:
         mem_mb  = resources["tidk"]["mem_mb"],
         runtime = resources["tidk"]["runtime"],
@@ -109,6 +109,34 @@ rule telomere_motif:
         "../scripts/pick_telomere_motif.py"
 
 
+def hifiasm_telo_runs(wildcards, input):
+    """False when the job will only write an empty placeholder (motif.tsv
+    says no re-run, or the reads are near-empty) -- then it gets 1 thread and
+    1 GB instead of hifiasm's 32 threads and 40+ GB. On a real run every
+    cell was a placeholder, each holding a 32-thread/64 GB slot for 2-5 s.
+    Resources are worked out once motif.tsv exists, before submission."""
+    try:
+        with open(input.motif) as f:
+            rerun = next((l.rstrip("\n").split("\t")[1] for l in f
+                          if l.startswith("rerun\t")), "")
+        min_bytes = int(config.get("hifiasm_min_input_mb", 1)) * 1_000_000
+        return rerun == "yes" and os.path.getsize(input.a) >= min_bytes
+    except (OSError, IndexError):
+        return True
+
+
+def _hifiasm_telo_mem(wildcards, input, attempt):
+    if not hifiasm_telo_runs(wildcards, input):
+        return 1000
+    return scaled_mem(4.0, 40000)(wildcards, input, attempt)
+
+
+def _hifiasm_telo_time(wildcards, input, attempt):
+    if not hifiasm_telo_runs(wildcards, input):
+        return 10
+    return scaled_time(0.3, 720)(wildcards, input, attempt)
+
+
 rule hifiasm_telo:
     input:
         unpack(hifiasm_inputs),
@@ -116,10 +144,10 @@ rule hifiasm_telo:
     output:
         fa = temp("data/hifiasm_telo/{input}_q{minq}_l{minlen}/{input}_q{minq}_l{minlen}.fa"),
     threads:
-        32
+        lambda w, input: 32 if hifiasm_telo_runs(w, input) else 1
     resources:
-        mem_mb=scaled_mem(4.0, 64000),
-        runtime=scaled_time(0.3, 720),
+        mem_mb=_hifiasm_telo_mem,
+        runtime=_hifiasm_telo_time,
     params:
         ul_flag   = lambda w, input: f"--ul {input.b}" if wants_ultralong(w.input) else "",
         min_bytes = int(config.get("hifiasm_min_input_mb", 1)) * 1_000_000,
