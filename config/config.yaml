@@ -46,6 +46,11 @@ hifiasm_min_input_mb: 1
 
 min_assembly_mb: 10
 
+prefilter:
+  enabled: true
+  min_q: 10
+  min_len: 10000
+
 filter:
   min_q:   [10, 15, 20]
   min_len: [10000, 15000, 20000, 25000, 30000]

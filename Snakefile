@@ -171,6 +171,27 @@ def get_trimmed_fastq(wildcards):
     return (f"data/porechopped/{n}.fastq" if trim_adapters(n)
             else get_raw_fastq(wildcards))
 
+def chopper_source(wildcards, minq, minlen):
+    """Reads chopper filters for a (minq, minlen) cutoff. A cutoff at least
+    as strict as config `prefilter` reads the prefilter cell's output instead
+    of the full read set, so the full set is read once rather than once per
+    grid cell. Same result: chopper keeps or drops each read on its own mean
+    quality and length, so q10/l10000 then q15/l20000 keeps exactly the reads
+    q15/l20000 alone keeps. The prefilter cell itself, and any looser cutoff,
+    reads the full set."""
+    p = {"enabled": True, "min_q": 10, "min_len": 10000,
+         **config.get("prefilter", {})}
+    if p["enabled"]:
+        pq, pl = p["min_q"], p["min_len"]
+        q, l = float(minq), int(minlen)
+        if q >= pq and l >= pl and (q, l) != (pq, pl):
+            return f"data/chopper/{wildcards.input}_q{pq}_l{pl}.fastq"
+    return get_trimmed_fastq(wildcards)
+
+def get_chopper_input(wildcards):
+    """Input of rule chopper; see chopper_source."""
+    return chopper_source(wildcards, wildcards.minq, wildcards.minlen)
+
 def get_correct_input(wildcards):
     """Reads for one (sample, min_q, min_len) grid cell, coverage-capped
     only if the user asked. Used directly as hifiasm's input when

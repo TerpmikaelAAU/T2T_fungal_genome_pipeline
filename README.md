@@ -145,6 +145,8 @@ Duplex data (`dorado duplex`) needs no extra key; see "Duplex data" below.
 | `ultralong.min_q`, `min_len` | `10`, `50000` | The fixed cutoff for the `--ul` read set, independent of the grid. Check there's enough coverage above `min_len` first: on one large test dataset only ~3.5x remained above 20 kb. |
 | `hifiasm_min_input_mb` | `1` | Grid cells with less read data than this skip hifiasm and get an empty placeholder: on a near-empty FASTQ hifiasm crashes with an illegal instruction instead of an error. |
 | `min_assembly_mb` | `10` | Smallest total assembly (Mb) that counts as a genome; see the end of "The read-filtering grid". Keep it well below the expected genome size (fungi: ~10-100 Mb). `0` turns it off. |
+| `prefilter.enabled` | `true` | Filter the full read set once at `prefilter.min_q`/`min_len`, and let every stricter cutoff (grid cells, `ultralong`, the Flye organelle reads) filter that smaller file instead of re-reading all the reads; see "The read-filtering grid". Same reads in every cell either way. |
+| `prefilter.min_q`, `min_len` | `10`, `10000` | The shared first cutoff. Best set to the grid's loosest cell, so that cell is the prefilter output itself. A cutoff looser than this still reads the full read set. |
 | `filter.min_q`, `min_len` | `[10, 15, 20]`, `[10000, ..., 30000]` | The default read-filtering grid. |
 | `telomere.*` | see "Telomeres" | |
 | `contamination.enabled` | `true` | Tiara screen; see "Contamination screen". |
@@ -190,6 +192,13 @@ too, including grid cells that sample never ran.
 
 For a sample with `dorado_correct` on, this grid's `min_q` is ignored --
 only its `min_len` values apply, and only AFTER correction -- see below.
+
+Only one cell reads the full read set: the `prefilter` cell (`q10_l10000` by
+default). Every stricter cell filters that cell's output, which is much
+smaller, so a 100 GB read set is read once instead of once per cell. Each
+read is kept or dropped on its own quality and length, so a cell keeps
+exactly the same reads as filtering the full set would. A cell looser than
+`prefilter` (e.g. `l1000`) reads the full set.
 
 **Two independent rules pick a winner across that grid, in parallel:**
 - `contig_count` picks the fewest-contigs assembly. Check the winner's total

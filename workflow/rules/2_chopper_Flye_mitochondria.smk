@@ -2,9 +2,10 @@
 # (flye -> getorganelle), independent of the main (min_q, min_len) grid in
 # config.yaml `filter:` -- that grid is tuned for hifiasm's nuclear assembly,
 # not for finding one mitochondrial contig.
+# Reads the prefilter cell's output when Q20/l20000 is stricter than it.
 rule chopper_flye:
     input:
-        a = get_trimmed_fastq
+        a = lambda w: chopper_source(w, 20, 20000)
     output:
         a = temp("data/chopper/Flye/{input}.fastq")
     # Same sizing as rule chopper (2_chopper.smk).
