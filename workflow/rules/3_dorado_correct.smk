@@ -48,8 +48,14 @@ rule correct_overlap:
         a = temp("data/dorado/{input}/block_{block}.paf")
     threads:
         64
+    # Memory: on a 32 GB input FASTQ (--index-size 4G), 2.5x the input
+    # (80 GB) was OOM-killed on every block, and one block still hit 164 GB
+    # at 160 GB. 6x (~190 GB for that input) fits; a block that still runs
+    # out gets two doublings instead of the profile's one retry.
+    retries:
+        2
     resources:
-        mem_mb = scaled_mem(2.5, 64000),
+        mem_mb = scaled_mem(6, 64000),
         runtime = scaled_time(0.08, 720),
     log:
         "logs/correct_overlap/{input}_block{block}.log"
