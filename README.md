@@ -195,7 +195,8 @@ two simplex reads it was made from, so the pipeline handles it like this:
   For a FASTQ the read names must be dorado's own; renamed reads can't be
   matched to their parents.
 - **Polishing:** `dorado polish` rejects duplex data, so it gets the simplex
-  reads only (parents included -- they cover the same molecules) and the
+  reads only (parents included -- they cover the same molecules; duplex
+  reads are found by the `dx:i:1` tag, or by their `<id1>;<id2>` name) and the
   duplex read group is removed from the aligned BAM's header.
 
 Simplex data passes through both steps unchanged.
