@@ -50,10 +50,14 @@ rule correct_overlap:
         64
     # Memory: on a 32 GB input FASTQ (--index-size 4G), 2.5x the input
     # (80 GB) was OOM-killed on every block, and one block still hit 164 GB
-    # at 160 GB. 6x (~190 GB for that input) fits; a block that still runs
-    # out gets two doublings instead of the profile's one retry.
+    # at 160 GB. 6x (~190 GB for that input) fits most blocks; one block of
+    # a 32 GB input needed 12x (390 GB), so a block that still runs out gets
+    # two doublings instead of the profile's one retry.
+    # Only the main process may retry: the SLURM jobstep otherwise also
+    # honours `retries`, restarting the job inside its own allocation with a
+    # doubled mem_mb SLURM never granted -- two more OOM kills, ~1.5 h wasted.
     retries:
-        2
+        0 if workflow.remote_exec else 2
     resources:
         mem_mb = scaled_mem(6, 64000),
         runtime = scaled_time(0.08, 720),
