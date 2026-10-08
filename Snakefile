@@ -326,10 +326,10 @@ resources = {
     "chopper":          {"mem_mb": 5000,   "runtime": 400},
     "fga":              {"mem_mb": 2000,   "runtime": 600},  # awk/python over one assembly; peaked at ~180 MB
     "porechop_api":     {"mem_mb": 100000, "runtime": 6000},
-    "dorado_basecall":  {"mem_mb": 100000, "runtime": 100800},
+    "dorado_basecall":  {"mem_mb": 100000, "runtime": MAX_RUNTIME},
     "seqkit":           {"mem_mb": 10000,  "runtime": 6000},
-    "dorado_align":     {"mem_mb": 75000,  "runtime": 72000},
-    "dorado_polish":    {"mem_mb": 100000, "runtime": 60000},
+    "dorado_align":     {"mem_mb": 75000,  "runtime": MAX_RUNTIME},
+    "dorado_polish":    {"mem_mb": 100000, "runtime": MAX_RUNTIME},
     # dorado correct, split into its three stages
     "correct_blocks":   {"mem_mb": 32000,  "runtime": 120},
     "correct_overlap":  {"mem_mb": 250000, "runtime": 720},
@@ -345,6 +345,13 @@ resources = {
     "ufcg_align":       {"mem_mb": 64000,  "runtime": 2880},
     "fasttree":         {"mem_mb": 64000,  "runtime": 2880},
 }
+
+# sbatch rejects a job asking for more than the cluster's walltime ceiling
+# ("Requested time limit is invalid") before it ever runs, so fail here.
+for _rule, _res in resources.items():
+    if _res["runtime"] > MAX_RUNTIME:
+        raise ValueError(f"resources['{_rule}']['runtime'] = {_res['runtime']} min "
+                         f"exceeds MAX_RUNTIME ({MAX_RUNTIME} min)")
 
 # GPU request for BioCloud's single A10 node (bio-node10).
 GPU_GRES = "gpu:a10:1"
