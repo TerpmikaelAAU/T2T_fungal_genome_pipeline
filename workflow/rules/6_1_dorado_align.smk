@@ -1,6 +1,7 @@
-# Only reached for pod5/bam entry points (has_bam() -- polishing needs a
-# BAM). Aligns the original basecalled reads back onto a WINNING grid-cell
-# assembly, producing the input dorado_polish needs. Runs once per DISTINCT
+# Only reached for samples that can be polished (can_polish() in the
+# Snakefile: pod5, bam, and FASTQs carrying dorado's read-group tags).
+# Aligns the original basecalled reads (get_polish_reads) back onto a
+# WINNING grid-cell assembly, producing the input dorado_polish needs. Runs once per DISTINCT
 # winner: {selector} here is the first selector that picked it (see
 # 6_05_polish_once.smk), so identical winners are aligned only once.
 #
@@ -13,7 +14,7 @@ rule dorado_align_raw:
     input:
         dorado = dorado_bin,
         a = unique_winner,
-        b = get_bam
+        b = get_polish_reads
     output:
         a = temp("data/dorado_align_raw/{input}_{selector}.bam"),
     threads:
@@ -28,10 +29,11 @@ rule dorado_align_raw:
         "{input.dorado}" aligner --threads {threads} {input.a} {input.b} > {output.a} 2> {log}
         """
 
-# dorado polish refuses duplex data, so duplex reads (dx:i:1) are dropped
-# here and the duplex ("stereo") read group is removed from the header. The
-# simplex reads left -- including the parents of every duplex read -- still
-# cover all the data. A no-op for simplex BAMs.
+# dorado polish refuses duplex data, so duplex reads are dropped here (by
+# the dx:i:1 tag, or for a FASTQ whose reads lack it, by dorado's duplex
+# read name <id1>;<id2>) and the duplex ("stereo") read group is removed
+# from the header. The simplex reads left -- including the parents of every
+# duplex read -- still cover all the data. A no-op for simplex data.
 rule dorado_align:
     input:
         a = rules.dorado_align_raw.output.a,
@@ -51,7 +53,7 @@ rule dorado_align:
         "logs/dorado_align/{input}_{selector}.log"
     shell:
         """
-        samtools view -u -e '!([dx]==1)' {input.a} 2> {log} \
+        samtools view -u -e '!([dx]==1) && !(qname =~ ";")' {input.a} 2> {log} \
             | samtools sort --threads {threads} -o {output.a}.tmp.bam - 2>> {log}
         samtools view --no-PG -H {output.a}.tmp.bam > {output.a}.header.sam
         if grep -q '^@RG.*stereo' {output.a}.header.sam; then
