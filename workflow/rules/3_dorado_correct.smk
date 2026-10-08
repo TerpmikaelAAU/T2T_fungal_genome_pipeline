@@ -84,7 +84,11 @@ rule correct_inference:
     threads:
         16
     resources:
-        mem_mb = scaled_mem(0.5, 32000, GPU_MEM_CAP),
+        # On the GPU node, retries can't ask for more than that node has
+        # (GPU_MEM_CAP). On CPU (inference_device: "cpu") it runs on the
+        # big-memory nodes, so retries may keep doubling up to CPU_MEM_CAP.
+        mem_mb = scaled_mem(0.5, 32000,
+                            CPU_MEM_CAP if INFER_DEVICE == "cpu" else GPU_MEM_CAP),
         runtime = scaled_time(0.05, 480),
         **({"gres": INFER_GRES} if INFER_GRES else {}),
     log:
