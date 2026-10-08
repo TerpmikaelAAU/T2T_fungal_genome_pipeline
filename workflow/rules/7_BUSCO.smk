@@ -1,5 +1,5 @@
-# Genome completeness check on the deliverable assembly (polished if a BAM
-# was available, else the winning raw grid-cell assembly) -- run once per
+# Genome completeness check on the deliverable assembly (polished if the
+# sample could be polished -- can_polish() in the Snakefile -- else the winning raw grid-cell assembly) -- run once per
 # selector (lowest_contig and highest_busco, see Snakefile SELECTORS), since
 # each selector can pick a different assembly and, if polished, a
 # differently-polished one too. `lineage` is per-sample (busco_lineage(),
@@ -8,7 +8,7 @@
 # despite this pipeline's name.
 rule busco:
     input:
-        a = lambda w: (f"data/dorado_polish/{w.input}_{w.selector}.fasta" if has_bam(w.input)
+        a = lambda w: (f"data/dorado_polish/{w.input}_{w.selector}.fasta" if can_polish(w.input)
              else f"data/contig/{w.input}_{w.selector}_file.fa")
     output:
         # Only the short summary gets pulled into results/summary.txt (see
@@ -46,8 +46,8 @@ rule busco:
         fi
         """
 
-# Same BUSCO run on the UNPOLISHED winner, for pod5/bam samples only (fastq
-# samples aren't polished, so `busco` above already is their "before"). With
+# Same BUSCO run on the UNPOLISHED winner, for polished samples only (an
+# unpolished sample's `busco` above already is its "before"). With
 # both, summary.txt shows BUSCO before and after polishing side by side, to
 # see what dorado polish gained (or lost) for each selector.
 use rule busco as busco_unpolished with:

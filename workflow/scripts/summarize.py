@@ -172,7 +172,7 @@ def busco_section(title, busco_dir):
 
 lineage = snakemake.params.lineage
 if "busco_unpolished" in snakemake.input.keys():
-    # pod5/bam samples: the same assembly before and after dorado polish.
+    # Polished samples: the same assembly before and after dorado polish.
     before = busco_section(f"BUSCO BEFORE POLISHING  ({lineage})",
                            snakemake.input.busco_unpolished)
     after = busco_section(f"BUSCO AFTER POLISHING  ({lineage})",

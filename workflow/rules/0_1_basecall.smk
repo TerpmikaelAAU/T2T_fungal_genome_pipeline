@@ -1,5 +1,5 @@
 # Only runs for samples with type: pod5. GPU-only (bio-node10); output BAM
-# carries the move table dorado_align/dorado_polish need later, and is
+# carries the move table dorado_polish uses (for its more accurate model), and is
 # protected() since basecalling is the most expensive step to redo.
 rule dorado_basecall:
     input:
