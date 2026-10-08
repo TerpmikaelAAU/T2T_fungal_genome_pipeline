@@ -1,4 +1,7 @@
+import gzip
 import os
+import re
+from snakemake.logging import logger
 from snakemake.utils import min_version
 
 min_version("9.0")
@@ -93,9 +96,40 @@ SELECTORS = ["lowest_contig", "highest_busco"] + (["most_t2t"] if TELOMERE_ON el
 def stype(name):
     return SAMPLES[name]["type"]
 
-def has_bam(name):
-    """Polishing needs a BAM: available for pod5 (we make one) and bam entries."""
-    return stype(name) in ("pod5", "bam")
+# dorado polish picks its model from the basecaller model named in the
+# aligned BAM's @RG header. A BAM from dorado (ours from pod5, or the
+# user's) always has it. A FASTQ only has it when dorado wrote the FASTQ
+# with its tags in each read's header line, e.g.
+#   @<read id>  ...  RG:Z:<run id>_dna_r10.4.1_e8.2_400bps_sup@v5.0.0  ...
+# -- dorado aligner turns that into the @RG header. Older MinKNOW FASTQs
+# ("runid=... ch=...") and renamed reads don't have it, and polish would
+# fail on them ("no basecaller models listed in the header"), so those
+# samples are assembled without polishing instead.
+_RG_MODEL = re.compile(r"(?:^|\s)RG:Z:[0-9a-f-]+_\S*@v\d+\.\d+\.\d+")
+
+def fastq_has_read_groups(path):
+    """True if the FASTQ's first read carries dorado's RG:Z:<run>_<model> tag."""
+    try:
+        with open(path, "rb") as fh:
+            gz = fh.read(2) == b"\x1f\x8b"
+        with (gzip.open(path, "rt") if gz else open(path)) as fh:
+            return bool(_RG_MODEL.search(fh.readline()))
+    except (OSError, EOFError, UnicodeDecodeError):
+        return False  # missing/unreadable: the read rules report that
+
+_CAN_POLISH = {}
+for _name, _s in SAMPLES.items():
+    _CAN_POLISH[_name] = _s["type"] != "fastq" or fastq_has_read_groups(_s["path"])
+    if _s["type"] == "fastq":
+        logger.info(f"Sample '{_name}': " + (
+            "FASTQ has dorado read-group tags -- will be polished." if _CAN_POLISH[_name]
+            else "FASTQ has no dorado read-group tags (RG:Z:<run>_<model>) "
+                 "-- will not be polished. See README.md, 'Entry points'."))
+
+def can_polish(name):
+    """dorado polish needs reads that name their basecaller model: every
+    pod5/bam sample, and fastq samples written by dorado with its tags."""
+    return _CAN_POLISH[name]
 
 def subsampled(name):
     return bool(SAMPLES[name].get("subsample"))
@@ -151,6 +185,12 @@ def get_bam(wildcards):
     s = SAMPLES[wildcards.input]
     return (f"data/dorado_basecall/{wildcards.input}.bam"
             if s["type"] == "pod5" else s["path"])
+
+def get_polish_reads(wildcards):
+    """Reads dorado_align maps onto a winner: the BAM, or a FASTQ sample's
+    original file (dorado reads .fastq.gz itself and keeps the header tags)."""
+    s = SAMPLES[wildcards.input]
+    return s["path"] if s["type"] == "fastq" else get_bam(wildcards)
 
 def get_raw_fastq(wildcards):
     """Plain-text FASTQ entering porechop/chopper: converted from BAM, or a
@@ -419,13 +459,13 @@ def final_targets():
     t = []
     for n in SAMPLES:
         for sel in SELECTORS:
-            # Final assembly: polished where a BAM exists, otherwise the best raw one
-            if has_bam(n):
+            # Final assembly: polished where possible, otherwise the best raw one
+            if can_polish(n):
                 t.append(f"data/dorado_polish/{n}_{sel}.fasta")
             else:
                 t.append(f"data/contig/{n}_{sel}_file.fa")
             t.append(f"data/busco/{n}_{sel}/BUSCO")
-            if has_bam(n):
+            if can_polish(n):
                 # BUSCO on the same assembly before polishing, for comparison
                 t.append(f"data/busco_unpolished/{n}_{sel}/BUSCO")
             t.append(f"results/{n}/{sel}/summary.txt")

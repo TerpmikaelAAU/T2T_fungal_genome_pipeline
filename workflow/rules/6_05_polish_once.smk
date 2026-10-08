@@ -4,7 +4,7 @@
 # The selectors (lowest_contig, highest_busco, most_t2t -- see Snakefile
 # SELECTORS) often pick the SAME grid cell. Aligning and polishing it once
 # per selector would repeat the most expensive GPU step for an identical
-# result, so for pod5/bam samples:
+# result, so for samples that can be polished (can_polish()):
 #   1. polish_groups (checkpoint) -- compares the selectors' winners byte for
 #      byte and keeps one copy of each distinct assembly, named after the
 #      first selector (in SELECTORS order) that picked it. The mapping is

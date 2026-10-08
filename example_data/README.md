@@ -8,7 +8,7 @@ pipeline at real data. Don't expect a real assembly from these.
 | File                      | Entry point | Notes                          |
 |---------------------------|-------------|---------------------------------|
 | `sample_a.fastq.gz`       | `fastq`     | 20 reads, gzipped              |
-| `sample_b.fastq`          | `fastq`     | 20 reads, plain text            |
+| `sample_b.fastq`          | `fastq`     | 20 reads, plain text, dorado read-group tags |
 | `sample_c.bam`            | `bam`       | 20 unaligned reads, no move table |
 | `sample_d_pod5/reads.pod5`| `pod5`      | 5 reads, random signal          |
 
@@ -16,5 +16,8 @@ All reads are random bases/signal, so they're far too small and too low
 coverage for hifiasm to assemble (it will correctly skip them -- see
 `hifiasm_min_input_mb` in the main README). `sample_c.bam` has no
 real move table, so polishing on it will not produce a meaningful result.
+`sample_b.fastq`'s read headers carry a made-up dorado read-group tag
+(`RG:Z:<run id>_<model>`), so it takes the FASTQ polishing path;
+`sample_a.fastq.gz` has none, so it is assembled without polishing.
 `sample_d_pod5` has no real signal, so basecalling it will not produce
 meaningful reads either.

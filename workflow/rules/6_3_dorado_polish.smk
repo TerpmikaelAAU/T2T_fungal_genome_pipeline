@@ -1,5 +1,8 @@
-# Last step for pod5/bam entry points: polish a winning assembly using the
-# aligned reads (dorado_align) and their move table. GPU-only. Runs once per
+# Last step for samples that can be polished (can_polish()): polish a
+# winning assembly using the aligned reads (dorado_align). dorado picks the
+# model from the basecaller model in the BAM's @RG header, and its more
+# accurate move-table model only when the reads carry one (pod5 basecalled
+# here, or a BAM/FASTQ basecalled with --emit-moves). GPU-only. Runs once per
 # DISTINCT winner (see 6_05_polish_once.smk); polished_assembly then hands
 # the result to every selector that picked it. Output is temp() --
 # final_genome (9_stats.smk) copies it into
