@@ -242,7 +242,9 @@ it. dorado correct itself always runs ONCE per sample, on the fixed
 `dorado_correct.min_q`/`min_len` cutoff above (same idea as `ultralong`'s
 fixed cutoff) -- not the `filter:` grid. Its output is FASTA with no
 per-base quality (correction discards it), so it's padded with a
-placeholder quality string just so hifiasm can read it as FASTQ. *That*
+placeholder Q30 quality string just so hifiasm can read it as FASTQ. It
+must be at least Q10: `hifiasm --ont` drops every read whose mean quality
+is below 10 (its `--sc-cut` default). *That*
 padded FASTQ is then filtered again by the `filter:` grid's `min_len`
 values (its own `filter:` override if the sample has one) -- one assembly
 per length, same as any other sample's grid -- but not by `min_q`, since
