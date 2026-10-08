@@ -143,7 +143,7 @@ rule final_genome:
     """The deliverable: polished where possible, best raw assembly otherwise --
     one per selector (lowest_contig / highest_busco, see Snakefile SELECTORS)."""
     input:
-        a = lambda w: (f"data/dorado_polish/{w.input}_{w.selector}.fasta" if has_bam(w.input)
+        a = lambda w: (f"data/dorado_polish/{w.input}_{w.selector}.fasta" if can_polish(w.input)
                        else f"data/contig/{w.input}_{w.selector}_file.fa")
     output:
         a = protected("results/{input}/{selector}/{input}_{selector}_final.fasta")
@@ -160,10 +160,10 @@ rule final_genome:
 
 def summary_optional_inputs(wildcards):
     """Inputs for summary.txt's optional sections: BUSCO before polishing
-    (pod5/bam samples), TELOMERES (telomere: enabled) and CONTAMINATION
+    (polished samples, see can_polish()), TELOMERES (telomere: enabled) and CONTAMINATION
     (contamination: enabled)."""
     d = {}
-    if has_bam(wildcards.input):
+    if can_polish(wildcards.input):
         d["busco_unpolished"] = f"data/busco_unpolished/{wildcards.input}_{wildcards.selector}/BUSCO"
     if TELOMERE_ON:
         d["telomeres"] = f"results/{wildcards.input}/{wildcards.selector}/telomeres.tsv"
@@ -184,7 +184,7 @@ rule summary:
     params:
         sample   = lambda w: w.input,
         selector = lambda w: w.selector,
-        polished = lambda w: has_bam(w.input),
+        polished = lambda w: can_polish(w.input),
         lineage  = lambda w: busco_lineage(w.input),
         tiara_min_len = CONTAM.get("min_len", 3000),
     threads:

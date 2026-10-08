@@ -22,7 +22,8 @@ FASTQ), the pipeline:
 3. Picks a winning assembly across the grid -- **twice, two independent
    ways**: fewest contigs, and highest BUSCO completeness (see "The
    read-filtering grid" below).
-4. Polishes each winner with `dorado polish` where a BAM is available
+4. Polishes each winner with `dorado polish` where the reads allow it (see
+   "Entry points")
    (once per distinct assembly, when several selectors pick the same one).
 5. Runs BUSCO on each winner -- before and after polishing when it is
    polished -- and reports read/assembly stats and coverage.
@@ -162,7 +163,26 @@ Duplex data (`dorado duplex`) needs no extra key; see "Duplex data" below.
 |---|---|---|
 | `pod5`  | a directory of `.pod5` files | basecall -> filter -> assemble -> polish |
 | `bam`   | one basecalled `.bam` file | filter -> assemble -> polish |
-| `fastq` | one `.fastq` or `.fastq.gz` file | filter -> assemble (no polishing -- there's no move table to polish with) |
+| `fastq` | one `.fastq` or `.fastq.gz` file | filter -> assemble -> polish, if the FASTQ has dorado's read-group tags (below); otherwise no polishing |
+
+**What polishing needs.** `dorado polish` chooses its model from the
+basecaller model that produced the reads, so it needs reads that say which
+model that was:
+- **pod5 / bam:** always. A dorado BAM records it in its header.
+- **fastq:** only if dorado wrote the FASTQ with its tags in every read's
+  header line. Check the first line of your file:
+  ```bash
+  zcat -f reads.fastq.gz | head -1
+  ```
+  Polishing works if it contains a tag like
+  `RG:Z:<run id>_dna_r10.4.1_e8.2_400bps_sup@v5.0.0`. A bare read ID, or an
+  older MinKNOW header (`runid=... ch=...`), can't be polished; such a
+  sample is assembled as before, unpolished. The pipeline checks this when
+  it starts and prints, for each FASTQ sample, whether it will be polished.
+
+Polishing is more accurate when the reads also carry a move table (dorado
+`basecaller --emit-moves`; the pod5 entry point always does this). Without
+one, dorado polish uses its standard model instead -- still worthwhile.
 
 ### Duplex data
 Duplex reads from `dorado duplex` work with the `bam` and `fastq` entry
@@ -176,7 +196,8 @@ two simplex reads it was made from, so the pipeline handles it like this:
   For a FASTQ the read names must be dorado's own; renamed reads can't be
   matched to their parents.
 - **Polishing:** `dorado polish` rejects duplex data, so it gets the simplex
-  reads only (parents included -- they cover the same molecules) and the
+  reads only (parents included -- they cover the same molecules; duplex
+  reads are found by the `dx:i:1` tag, or by their `<id1>;<id2>` name) and the
   duplex read group is removed from the aligned BAM's header.
 
 Simplex data passes through both steps unchanged.
@@ -210,11 +231,11 @@ exactly the same reads as filtering the full set would. A cell looser than
   highest-completeness one instead -- doesn't share `contig_count`'s
   collapsed-repeat blind spot. **Cost warning:** this is one BUSCO run per
   grid cell (e.g. 12 for a 3x4 grid), on top of the final BUSCO run each
-  winner gets afterwards (two for pod5/bam samples: before and after
+  winner gets afterwards (two for polished samples: before and after
   polishing).
 
 Both winners go through the rest of the pipeline independently -- polishing
-if a BAM is available (with BUSCO run both before and after, so
+where possible (with BUSCO run both before and after, so
 `summary.txt` shows what polishing changed), a final BUSCO run, stats, and a
 deliverable -- so
 every sample ends up with two directly comparable results:
@@ -423,12 +444,12 @@ with `--notemp` to keep everything while debugging.
 ```
 results/<sample>/
   read_stats.tsv                      # seqkit stats for the raw (and trimmed) reads, dorado correct's input and output (when on), and what hifiasm got per grid cell
-  polish_groups.tsv                   # pod5/bam only: which selectors picked the same assembly (polished once)
+  polish_groups.tsv                   # polished samples only: which selectors picked the same assembly (polished once)
 
   lowest_contig/                      # winner selected by fewest contigs
     summary.txt                       #   human-readable: reads, grid, coverage, BUSCO (before + after polishing if polished)
     assembly_stats.tsv                #   seqkit stats for every grid candidate + this winner
-    <sample>_lowest_contig_final.fasta  # THE deliverable for this selector -- polished if a BAM was available
+    <sample>_lowest_contig_final.fasta  # THE deliverable for this selector -- polished if the sample could be
 
   highest_busco/                      # winner selected by highest BUSCO completeness
     summary.txt
