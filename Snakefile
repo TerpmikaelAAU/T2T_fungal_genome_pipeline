@@ -361,6 +361,13 @@ GPU_GRES = "gpu:a10:1"
 INFER_DEVICE = config["dorado_correct"].get("inference_device", "cuda:all")
 INFER_GRES = "" if INFER_DEVICE == "cpu" else GPU_GRES
 
+# Polishing likewise (config `dorado_polish.device`). dorado's CPU path
+# runs one torch thread per inference worker, so on CPU it gets a whole
+# node's worth of workers instead of the GPU default of 2.
+POLISH_DEVICE = config.get("dorado_polish", {}).get("device", "cuda:all")
+POLISH_GRES = "" if POLISH_DEVICE == "cpu" else GPU_GRES
+POLISH_THREADS = 64 if POLISH_DEVICE == "cpu" else 16
+
 # Safety valve: a typo in index_size (e.g. "4" instead of "4G") could make
 # dorado report a huge block count and flood the scheduler. Snakemake never
 # submits more than `jobs:` at once, but this fails fast and loudly instead.

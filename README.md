@@ -137,6 +137,7 @@ Duplex data (`dorado duplex`) needs no extra key; see "Duplex data" below.
 | Setting | Value shipped | What it does |
 |---|---|---|
 | `dorado.version` | `"2.1.2"` | dorado release fetched on first use. Replace with `path: /my/own/dorado/bin/dorado` to use your own install and skip the download. |
+| `dorado_polish.device` | `"cuda:all"` | Set `"cpu"` to polish on an ordinary compute node instead of the GPU node, e.g. when the GPU node is down or busy. Much slower, but needs no GPU. |
 | `dorado_correct.enabled` | `false` | Default for every sample's `dorado_correct`. |
 | `dorado_correct.min_q`, `min_len` | `10`, `10000` | The one fixed cutoff applied to reads going INTO dorado correct. |
 | `dorado_correct.index_size` | `"4G"` | Smaller = less RAM per block, but more blocks. 4G is a safe start. |
