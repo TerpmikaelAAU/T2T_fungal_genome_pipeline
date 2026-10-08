@@ -30,6 +30,9 @@ samples:
 dorado:
   version: "2.1.2"
 
+dorado_polish:
+  device: "cuda:all"
+
 dorado_correct:
   enabled: false
   min_q: 10

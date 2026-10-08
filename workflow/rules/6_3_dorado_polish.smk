@@ -4,6 +4,9 @@
 # the result to every selector that picked it. Output is temp() --
 # final_genome (9_stats.smk) copies it into
 # results/{sample}/{selector}/{sample}_{selector}_final.fasta.
+# GPU by default; config `dorado_polish.device: "cpu"` runs it on a CPU node
+# instead (POLISH_DEVICE in the Snakefile). --threads matters there: without
+# it dorado uses every core on the node, not the ones SLURM gave the job.
 # --ignore-read-groups: a BAM merged from several runs (or a run that was
 # restarted) has one read group per run, which polish otherwise rejects;
 # all of them must still share one basecalling model.
@@ -16,13 +19,18 @@ rule dorado_polish:
     output:
         a = temp("data/dorado_polish_unique/{input}_{selector}.fasta")
     threads:
-        16
+        POLISH_THREADS
     resources:
         mem_mb=resources["dorado_polish"]["mem_mb"],
         runtime=resources["dorado_polish"]["runtime"],
-        gres=GPU_GRES,
+        **({"gres": POLISH_GRES} if POLISH_GRES else {}),
+    params:
+        infer_threads = lambda w, threads: threads if POLISH_DEVICE == "cpu" else 2,
+    log:
+        "logs/dorado_polish/{input}_{selector}.log"
     shell:
         """
-        "{input.dorado}" polish --batchsize 8 --device cuda:all --ignore-read-groups {input.a} {input.b} > {output.a}
-        
+        "{input.dorado}" polish --batchsize 8 --device {POLISH_DEVICE} \
+            --threads {threads} --infer-threads {params.infer_threads} \
+            --ignore-read-groups {input.a} {input.b} > {output.a} 2> {log}
         """
