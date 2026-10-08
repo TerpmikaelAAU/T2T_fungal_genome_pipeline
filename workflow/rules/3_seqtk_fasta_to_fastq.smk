@@ -1,8 +1,11 @@
 # dorado correct outputs FASTA (no quality scores); hifiasm --ont wants
 # FASTQ. Only reached when dorado_correct is enabled for this sample -- see
 # wants_dorado_correct()/get_assembly_input() -- padding every base with a
-# fake '#' quality score. Runs once per sample; the min_len sweep happens
-# afterward in 3_2_length_filter_corrected.smk.
+# fake '?' (Q30) quality score. Not '#' (Q2): hifiasm --ont drops every read
+# whose mean quality is below --sc-cut (default 10), so an all-Q2 file left
+# it with 0 reads and it crashed with SIGILL (exit 132). Runs once per
+# sample; the min_len sweep happens afterward in
+# 3_2_length_filter_corrected.smk.
 rule seqtk_fasta_to_fastq:
     input:
         a = "data/dorado/{input}.fasta"
@@ -20,5 +23,5 @@ rule seqtk_fasta_to_fastq:
         "../envs/seqtk.yml"
     shell:
         """
-        seqtk seq -F '#' {input.a} > {output.a}
+        seqtk seq -F '?' {input.a} > {output.a}
         """
