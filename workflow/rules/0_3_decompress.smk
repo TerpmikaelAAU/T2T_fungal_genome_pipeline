@@ -1,5 +1,5 @@
 # ============================================================================
-#  FASTQ samples: decompress once, drop duplex parents
+#  FASTQ (and sra) samples: decompress once, drop duplex parents
 # ============================================================================
 # The filter grid means every (min_q, min_len) chopper job used to zcat the
 # same multi-GB .fastq.gz independently -- measured at 12.8% CPU efficiency,
@@ -12,6 +12,9 @@
 # so each duplex molecule enters the assembly once -- see
 # workflow/scripts/drop_duplex_parents.sh. A no-op copy for simplex data.
 # BAM samples get the same filter (by the dx tag) in bam_to_fastq.
+#
+# sra samples come through here too, reading the .fastq.gz download_sra
+# fetched (0_5_download_sra.smk).
 rule prepare_fastq:
     input:
         a = lambda w: SAMPLES[w.input]["path"]
