@@ -15,8 +15,9 @@ duplicated ~240 Mb genome (~75% transposable elements).
 
 ## What this pipeline does
 Given raw Nanopore reads (or an already-basecalled BAM, or already-basecalled
-FASTQ), the pipeline:
-1. Optionally basecalls (pod5 entry point only) and trims adapters.
+FASTQ, or the accession of a public run on SRA/ENA), the pipeline:
+1. Optionally downloads the reads (sra entry point), basecalls (pod5 entry
+   point only) and trims adapters.
 2. Filters reads across a grid of quality/length cutoffs, assembling each
    cell independently with `hifiasm --ont`.
 3. Picks a winning assembly across the grid -- **twice, two independent
@@ -113,6 +114,16 @@ samples:
     organelle: false
 ```
 
+Public Nanopore data needs no download by hand: give the run accession
+instead of a path (see "Entry points"):
+
+```yaml
+samples:
+  rhizopus_arrhizus:
+    type: sra
+    accession: SRR36829119
+```
+
 Keep cluster paths for your own runs out of commits: the dry-run check (see
 "Automatic checks") plans the committed config, and fails on a path that
 only exists on the cluster.
@@ -120,8 +131,9 @@ only exists on the cluster.
 ### Per-sample keys
 | Key | Default | What it does |
 |---|---|---|
-| `type` | required | `pod5`, `bam` or `fastq`; see "Entry points" below. |
-| `path` | required | A directory of `.pod5` files, ONE basecalled `.bam` (merge several first with `samtools merge`), or one `.fastq`/`.fastq.gz`. Absolute, or relative to the repo root. |
+| `type` | required | `pod5`, `bam`, `fastq` or `sra`; see "Entry points" below. |
+| `path` | required, except for `sra` | A directory of `.pod5` files, ONE basecalled `.bam` (merge several first with `samtools merge`), or one `.fastq`/`.fastq.gz`. Absolute, or relative to the repo root. |
+| `accession` | required for `sra` | A run accession (`SRR...`, `ERR...` or `DRR...`), or a list of them when one sample was sequenced over several runs: `[SRR1, SRR2]`. |
 | `busco_lineage` | `fungi_odb12` | BUSCO dataset; see "BUSCO lineage" below. A narrower one (e.g. `ascomycota_odb12`) has more genes and is a stricter test. |
 | `min_assembly_mb` | global `min_assembly_mb` | Smallest grid assembly worth picking, for this sample. |
 | `porechop` | `true` | Adapter trimming with porechop_abi. Off makes sense for big BAMs: it's slow, and dorado already trims while basecalling. |
@@ -164,6 +176,20 @@ Duplex data (`dorado duplex`) needs no extra key; see "Duplex data" below.
 | `pod5`  | a directory of `.pod5` files | basecall -> filter -> assemble -> polish |
 | `bam`   | one basecalled `.bam` file | filter -> assemble -> polish |
 | `fastq` | one `.fastq` or `.fastq.gz` file | filter -> assemble -> polish, if the FASTQ has dorado's read-group tags (below); otherwise no polishing |
+| `sra`   | no `path:`; `accession:` instead | download -> filter -> assemble, no polishing (below) |
+
+**sra samples.** The reads of each accession are downloaded from ENA, which
+mirrors every public SRA and DDBJ run, md5-checked, and saved as
+`data/sra/<sample>.fastq.gz`; from there on the sample is handled like a
+`fastq` sample. The download log, `logs/download_sra/<sample>.log`, names
+the instrument and the read and base counts. The download stops with an
+error for a run that isn't Oxford Nanopore, and for one ENA has no FASTQ for
+yet (a run made public in the last few days): download that one with
+`fasterq-dump` and use it as a `fastq` sample. `data/sra/` is kept so the
+reads are only downloaded once -- expect roughly 1 GB per 1 Gbase of reads,
+and delete it by hand once the sample's `results/` are final. Look the run
+up on https://www.ebi.ac.uk/ena/browser/view/SRR36829119 (with your
+accession) to check its organism, size and platform before adding it.
 
 **What polishing needs.** `dorado polish` chooses its model from the
 basecaller model that produced the reads, so it needs reads that say which
@@ -179,6 +205,9 @@ model that was:
   older MinKNOW header (`runid=... ch=...`), can't be polished; such a
   sample is assembled as before, unpolished. The pipeline checks this when
   it starts and prints, for each FASTQ sample, whether it will be polished.
+- **sra:** never. SRA rewrites every read's header line (to
+  `@SRR36829119.1 <read id>`) and drops dorado's tags, so the model that made
+  the reads is unknown.
 
 Polishing is more accurate when the reads also carry a move table (dorado
 `basecaller --emit-moves`; the pod5 entry point always does this). Without
@@ -501,6 +530,8 @@ reference genomes' UFCG profiles are only made once.
   `results/<sample>/<selector>/summary.txt`.
 - `workflow/scripts/drop_duplex_parents.sh` -- copies a FASTQ sample's
   reads without the simplex parents of duplex reads (see "Duplex data").
+- `workflow/scripts/download_sra.sh` -- downloads an sra sample's reads
+  from ENA (see "Entry points").
 - `workflow/scripts/pick_highest_busco.py` -- picks the `highest_busco`
   selector's grid winner (see `rule highest_busco`).
 - `workflow/scripts/telomeres.py` (+ `pick_telomere_motif.py`,
