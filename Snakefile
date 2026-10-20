@@ -13,7 +13,7 @@ configfile: "config/config.yaml"
 # ============================================================================
 # Structure of this file, top to bottom:
 #   1. Sample handling       -- validates config['samples'], entry-point
-#                                helpers (pod5/bam/fastq), per-sample option
+#                                helpers (pod5/bam/fastq/sra), per-sample option
 #                                accessors (busco_lineage, organelle, filter
 #                                grid override, ...)
 #   2. Input resolvers        -- functions that pick the right upstream file
@@ -37,16 +37,32 @@ configfile: "config/config.yaml"
 #  Sample handling / entry points
 # ============================================================================
 SAMPLES = config["samples"]
-VALID_TYPES = {"pod5", "bam", "fastq"}
+VALID_TYPES = {"pod5", "bam", "fastq", "sra"}
+_RUN_ACCESSION = re.compile(r"^[SED]RR\d+$")
 
 # Fail loudly and early on a malformed config rather than deep in the DAG.
 for _name, _s in SAMPLES.items():
-    if "type" not in _s or "path" not in _s:
-        raise WorkflowError(f"Sample '{_name}': both 'type' and 'path' are required.")
+    if "type" not in _s:
+        raise WorkflowError(f"Sample '{_name}': 'type' is required.")
     if _s["type"] not in VALID_TYPES:
         raise WorkflowError(
             f"Sample '{_name}': type '{_s['type']}' is not one of {sorted(VALID_TYPES)}."
         )
+    if _s["type"] == "sra":
+        # One run accession, or a list of them (one sample sequenced over
+        # several runs). download_sra fetches their FASTQs from ENA into the
+        # working directory, and from there on the sample is a fastq sample.
+        _acc = _s.get("accession")
+        _s["accession"] = [_acc] if isinstance(_acc, str) else _acc
+        if not _s["accession"] or not all(
+                isinstance(a, str) and _RUN_ACCESSION.match(a) for a in _s["accession"]):
+            raise WorkflowError(
+                f"Sample '{_name}': type sra needs 'accession', one run accession "
+                f"(SRR/ERR/DRR followed by digits, e.g. SRR36829119) or a list of them.")
+        _s["path"] = f"data/sra/{_name}.fastq.gz"
+        continue
+    if "path" not in _s:
+        raise WorkflowError(f"Sample '{_name}': both 'type' and 'path' are required.")
     if not os.path.isabs(_s["path"]):
         # A relative path (e.g. "example_data/...") resolves against this
         # repo's root, so the bundled example data works after any clone.
@@ -96,6 +112,10 @@ SELECTORS = ["lowest_contig", "highest_busco"] + (["most_t2t"] if TELOMERE_ON el
 def stype(name):
     return SAMPLES[name]["type"]
 
+def is_fastq(name):
+    """fastq samples, and sra samples once download_sra has fetched them."""
+    return stype(name) in ("fastq", "sra")
+
 # dorado polish picks its model from the basecaller model named in the
 # aligned BAM's @RG header. A BAM from dorado (ours from pod5, or the
 # user's) always has it. A FASTQ only has it when dorado wrote the FASTQ
@@ -104,7 +124,9 @@ def stype(name):
 # -- dorado aligner turns that into the @RG header. Older MinKNOW FASTQs
 # ("runid=... ch=...") and renamed reads don't have it, and polish would
 # fail on them ("no basecaller models listed in the header"), so those
-# samples are assembled without polishing instead.
+# samples are assembled without polishing instead. So are sra samples: SRA
+# rewrites every read's header line to "@SRR....1 <read id>", dropping the
+# tags, and the reads aren't downloaded yet when this runs anyway.
 _RG_MODEL = re.compile(r"(?:^|\s)RG:Z:[0-9a-f-]+_\S*@v\d+\.\d+\.\d+")
 
 def fastq_has_read_groups(path):
@@ -119,8 +141,12 @@ def fastq_has_read_groups(path):
 
 _CAN_POLISH = {}
 for _name, _s in SAMPLES.items():
-    _CAN_POLISH[_name] = _s["type"] != "fastq" or fastq_has_read_groups(_s["path"])
-    if _s["type"] == "fastq":
+    _CAN_POLISH[_name] = (_s["type"] in ("pod5", "bam")
+                          or (_s["type"] == "fastq" and fastq_has_read_groups(_s["path"])))
+    if _s["type"] == "sra":
+        logger.info(f"Sample '{_name}': reads from SRA carry no dorado read-group tags "
+                    "-- will not be polished. See README.md, 'Entry points'.")
+    elif _s["type"] == "fastq":
         logger.info(f"Sample '{_name}': " + (
             "FASTQ has dorado read-group tags -- will be polished." if _CAN_POLISH[_name]
             else "FASTQ has no dorado read-group tags (RG:Z:<run>_<model>) "
@@ -190,15 +216,15 @@ def get_polish_reads(wildcards):
     """Reads dorado_align maps onto a winner: the BAM, or a FASTQ sample's
     original file (dorado reads .fastq.gz itself and keeps the header tags)."""
     s = SAMPLES[wildcards.input]
-    return s["path"] if s["type"] == "fastq" else get_bam(wildcards)
+    return s["path"] if is_fastq(wildcards.input) else get_bam(wildcards)
 
 def get_raw_fastq(wildcards):
     """Plain-text FASTQ entering porechop/chopper: converted from BAM, or a
-    FASTQ sample's reads copied once by prepare_fastq -- decompressed, so the
-    user's fastq.gz isn't re-zcat'd by every grid point, and with the simplex
-    parents of duplex reads removed (both entry points)."""
+    FASTQ (or sra) sample's reads copied once by prepare_fastq --
+    decompressed, so the fastq.gz isn't re-zcat'd by every grid point, and
+    with the simplex parents of duplex reads removed (both entry points)."""
     n = wildcards.input
-    return (f"data/reads/{n}.fastq" if stype(n) == "fastq"
+    return (f"data/reads/{n}.fastq" if is_fastq(n)
             else f"data/samtools/Fastq/{n}.fastq")
 
 def trim_adapters(name):
@@ -418,6 +444,7 @@ include: "workflow/rules/0_1_basecall.smk"
 include: "workflow/rules/0_2_bam_to_fastq.smk"
 include: "workflow/rules/0_3_decompress.smk"
 include: "workflow/rules/0_4_ncbi_genus_representatives.smk"
+include: "workflow/rules/0_5_download_sra.smk"
 include: "workflow/rules/1_porechop_api.smk"
 include: "workflow/rules/2_chopper.smk"
 include: "workflow/rules/2_chopper_Flye_mitochondria.smk"

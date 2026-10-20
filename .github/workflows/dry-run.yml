@@ -30,13 +30,15 @@ jobs:
 
       - name: Dry-run, every optional feature on, with a non-example sample
         # The phylogeny skips itself for example-data-only runs, so point one
-        # sample at a copy outside example_data/ to plan it too.
+        # sample at a copy outside example_data/ to plan it too. Also adds an
+        # sra sample, which only plans its download.
         run: |
           cp example_data/sample_b.fastq "$RUNNER_TEMP/ci_sample.fastq"
           python - <<PY
           import yaml
           cfg = yaml.safe_load(open("config/config.yaml"))
           cfg["samples"]["sample_b"]["path"] = "$RUNNER_TEMP/ci_sample.fastq"
+          cfg["samples"]["sample_e"] = {"type": "sra", "accession": "SRR36829119"}
           cfg["phylogeny"]["enabled"] = True
           cfg["telomere"]["enabled"] = True
           for key in ("bags", "contamination"):
