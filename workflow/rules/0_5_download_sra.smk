@@ -10,7 +10,10 @@
 # within a few days and serves them as ready-made .fastq.gz -- no
 # fasterq-dump conversion, and nothing to install beyond curl. The script
 # refuses runs that aren't Oxford Nanopore (hifiasm runs with --ont), and
-# says so when ENA has no FASTQ for a run yet. See
+# says so when ENA has no FASTQ for a run yet. ENA's file server is slow
+# and drops long transfers, so the script resumes each file where it
+# stopped, from data/sra/<sample>.fastq.gz.partial.<n>; those files survive
+# a failed job, so a retry or a later run resumes too. See
 # workflow/scripts/download_sra.sh.
 #
 # Kept, not temp(): a dataset is several GB, and deleting it after
