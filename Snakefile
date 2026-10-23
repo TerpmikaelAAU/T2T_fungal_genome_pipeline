@@ -506,7 +506,7 @@ def wants_report(name):
         return False
     if os.path.exists(f"results/{name}/report.html"):
         return True
-    if not os.path.isdir(f"results/{name}") and not glob.glob(f"data/hifiasm/{name}_q*"):
+    if not os.path.isdir(f"results/{name}") and not glob.glob(f"data/hifiasm/{name}_q[0-9]*"):
         return True
     w = SimpleNamespace(input=name)
     reads = [(f"data/report/{name}/reads.tsv.gz", get_trimmed_fastq(w))]

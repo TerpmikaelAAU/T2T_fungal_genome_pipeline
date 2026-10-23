@@ -339,7 +339,7 @@ function crosshair(f, xs, rowsAt) {
 // grid cell (from what hifiasm actually got).
 function coverageChart(parent) {
   const R = DATA.reads, E = R.len_edges, G = DATA.grid, gs = DATA.genome_size;
-  const lo = Math.max(E[0], 500), hi = Math.min(E[E.length - 1], Math.max(...G.min_len) * 4);
+  const lo = Math.max(E[0], 500), hi = Math.max(lo * 10, Math.min(E[E.length - 1], Math.max(...G.min_len) * 4));
   const qs = DATA.dorado_correct ? [null] : G.min_q;
   const series = qs.map(q => {
     const kept = DATA.dorado_correct ? keptAbove(R.corrected) : keptAbove(basesByLength(q));
@@ -479,7 +479,7 @@ function kmerPanels(parent) {
     const t = el("div", {class: "t"}, box);
     el("span", {}, t, c ? cellName(c) : "");
     if (win.length) { const b = el("span", {}, t); for (const w of win) el("span", {class: "badge"}, b, SEL[w].short); }
-    if (!c || !c.kmer) { el("div", {class: "empty"}, box, "no histogram"); continue; }
+    if (!c || !c.kmer || c.kmer.counts.length < 3) { el("div", {class: "empty"}, box, "no histogram"); continue; }
     kmerChart(box, c);
   }
 }

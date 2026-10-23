@@ -42,8 +42,9 @@ def as_int(value):
 
 # --- reads: a length x mean-quality histogram, in bases ---------------------
 # Every cutoff the grid uses is a bin edge, so the page can add up bins and
-# get exactly what each cell keeps (chopper keeps length >= min_len and mean
-# Q >= min_q, and seqkit computes mean Q the same way chopper does).
+# get what each cell keeps (chopper keeps length >= min_len and mean Q >=
+# min_q, and seqkit computes mean Q the same way chopper does; it prints it
+# to 2 decimals, so a read just under a cutoff can land on the wrong side).
 def length_edges(max_len, cutoffs):
     top = max(max_len + 1, 1001)
     edges = {round(10 ** (2 + i / 20)) for i in range(int(20 * (math.log10(top) - 2)) + 2)}
