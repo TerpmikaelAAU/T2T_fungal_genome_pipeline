@@ -188,9 +188,10 @@ download then resumes where it stopped, and only gives up after 10 attempts
 in a row that add nothing. What it got so far stays in
 `data/sra/<sample>.fastq.gz.partial.<file>`, so just rerun and it carries
 on. The download stops with an error for a run that isn't Oxford Nanopore,
-and for one ENA has no FASTQ for yet (a run made public in the last few
-days): download that one with
-`fasterq-dump` and use it as a `fastq` sample. `data/sra/` is kept so the
+for one ENA has no FASTQ for yet (a run made public in the last few days),
+and when the file ENA serves doesn't match the size or md5 it lists (its
+listing is out of date; rerunning won't help until ENA fixes it). Download
+such a run with `fasterq-dump` and use it as a `fastq` sample. `data/sra/` is kept so the
 reads are only downloaded once -- expect roughly 1 GB per 1 Gbase of reads,
 and delete it by hand once the sample's `results/` are final. Look the run
 up on https://www.ebi.ac.uk/ena/browser/view/SRR36829119 (with your

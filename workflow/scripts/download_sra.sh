@@ -10,11 +10,12 @@
 # ENA's file server is slow (~1-2 MB/s) and drops long transfers, so each
 # file is downloaded to <out>.partial.<file name> and resumed where it
 # stopped: after a dropped connection, a stall, or an error such as a 403,
-# the download carries on from the bytes already on disk. It gives up only
-# after MAX_IDLE attempts in a row that add nothing; the job's walltime
-# bounds the total. The partial files are kept when the script fails, so a
-# retry or a later run also resumes, and removed once the output is
-# complete.
+# the download carries on from the bytes already on disk. It gives up after
+# MAX_IDLE attempts in a row that add nothing (the job's walltime bounds the
+# total), keeping the partial files so a retry or a later run resumes; they
+# are removed once the output is complete. It also stops straight away when
+# the server's file doesn't match ENA's listed size or md5 (a stale
+# listing), and then nothing is gained by resuming.
 #
 # Usage: download_sra.sh <out.fastq.gz> <run accession> [run accession ...]
 set -euo pipefail
@@ -33,11 +34,14 @@ size_of() { if [ -e "$1" ]; then stat -c %s "$1"; else echo 0; fi; }
 fetch() {
     local url=$1 f=$2 want=$3 idle=0 https_fails=0 tries=0 restarted=0
     local scheme=https have before rc
+    # A download that starts from zero gets no restart: if it overshoots,
+    # ENA's listed size is wrong, and starting again would not help.
+    [ "$(size_of "$f")" -eq 0 ] && restarted=1
     while true; do
         have=$(size_of "$f")
         if [ "$have" -gt "$want" ]; then
-            # Once only: if a download from zero overshoots too, ENA's
-            # listed size is wrong, and starting again would loop forever.
+            # Once only, for a partial left by an earlier run: if the
+            # download from zero overshoots too, ENA's listed size is wrong.
             if [ "$restarted" -eq 1 ]; then
                 rm -f "$f"
                 echo "ERROR: ENA serves more than the $want bytes it lists for $url. Its listing is out of date; try again in a few days, or download the run with fasterq-dump and add it as a fastq sample."
