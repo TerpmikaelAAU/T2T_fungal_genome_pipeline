@@ -1,0 +1,676 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Assembly report</title>
+<!-- Page and charts for one sample's results/<sample>/report.html, filled in
+     by make_report.py: it replaces the REPORT_DATA line below with the
+     sample's numbers as JSON. Everything is drawn here, in plain SVG, so the
+     page needs no internet connection. -->
+<style>
+:root {
+  color-scheme: light;
+  --page: #f9f9f7; --surface: #fcfcfb; --ink: #0b0b0b; --ink-2: #52514e;
+  --muted: #898781; --grid: #e1e0d9; --axis: #c3c2b7;
+  --border: rgba(11,11,11,0.10);
+  --q1: #86b6ef; --q2: #2a78d6; --q3: #104281; --all: #c3c2b7;
+  --bar: #2a78d6; --bar-off: #c3c2b7;
+  --s: #2a78d6; --d: #1baf7a; --f: #eda100; --m: #e87ba4;
+  --seq-0: #cde2fb; --seq-1: #0d366b;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --page: #0d0d0d; --surface: #1a1a19; --ink: #f0efec; --ink-2: #c3c2b7;
+    --muted: #898781; --grid: #2c2c2a; --axis: #383835;
+    --border: rgba(255,255,255,0.10);
+    --q1: #184f95; --q2: #3987e5; --q3: #9ec5f4; --all: #5e5d59;
+    --bar: #3987e5; --bar-off: #5e5d59;
+    --s: #3987e5; --d: #199e70; --f: #c98500; --m: #d55181;
+    --seq-0: #1c2a3d; --seq-1: #9ec5f4;
+  }
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --page: #0d0d0d; --surface: #1a1a19; --ink: #f0efec; --ink-2: #c3c2b7;
+  --muted: #898781; --grid: #2c2c2a; --axis: #383835;
+  --border: rgba(255,255,255,0.10);
+  --q1: #184f95; --q2: #3987e5; --q3: #9ec5f4; --all: #5e5d59;
+  --bar: #3987e5; --bar-off: #5e5d59;
+  --s: #3987e5; --d: #199e70; --f: #c98500; --m: #d55181;
+  --seq-0: #1c2a3d; --seq-1: #9ec5f4;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--page); color: var(--ink);
+       font: 15px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif; }
+main { max-width: 1080px; margin: 0 auto; padding: 32px 16px 64px; }
+h1 { font-size: 26px; margin: 0 0 4px; font-weight: 650; }
+h2 { font-size: 19px; margin: 40px 0 4px; font-weight: 650; }
+h3 { font-size: 15px; margin: 0 0 2px; font-weight: 600; }
+p { margin: 0 0 8px; }
+.sub { color: var(--ink-2); }
+.small { font-size: 13px; color: var(--ink-2); }
+.card { background: var(--surface); border: 1px solid var(--border);
+        border-radius: 10px; padding: 16px 16px 12px; margin-top: 12px; }
+.howto { font-size: 14px; color: var(--ink-2); max-width: 75ch; }
+.howto b { color: var(--ink); font-weight: 600; }
+.kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+        gap: 12px; margin-top: 16px; }
+.kpi { background: var(--surface); border: 1px solid var(--border);
+       border-radius: 10px; padding: 12px 14px; }
+.kpi .v { font-size: 22px; font-weight: 650; }
+.kpi .l { font-size: 13px; color: var(--ink-2); }
+.two { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+@media (max-width: 760px) { .two { grid-template-columns: 1fr; } }
+.legend { display: flex; flex-wrap: wrap; gap: 4px 16px; font-size: 13px;
+          color: var(--ink-2); margin: 6px 0 2px; }
+.legend span { display: inline-flex; align-items: center; gap: 6px; }
+.key-line { width: 16px; height: 2px; border-radius: 1px; display: inline-block; }
+.key-vline { width: 1px; height: 12px; display: inline-block; margin: 0 4px; }
+.key-box { width: 10px; height: 10px; border-radius: 2px; display: inline-block; }
+.badge { display: inline-block; font-size: 11px; font-weight: 600; line-height: 16px;
+         padding: 0 5px; border-radius: 4px; border: 1px solid var(--ink-2);
+         color: var(--ink); white-space: nowrap; }
+svg { display: block; width: 100%; height: auto; overflow: visible; }
+svg text { fill: var(--muted); font-size: 12px; font-variant-numeric: tabular-nums; }
+svg text.ink { fill: var(--ink); }
+svg text.ink2 { fill: var(--ink-2); }
+.heat { display: grid; gap: 2px; margin-top: 8px; }
+.heat .h { font-size: 12px; color: var(--muted); display: flex; align-items: end;
+           justify-content: center; padding-bottom: 2px; }
+.heat .r { font-size: 12px; color: var(--muted); display: flex; align-items: center;
+           padding-right: 6px; justify-content: flex-end; }
+.heat .c { border-radius: 4px; padding: 8px 6px; text-align: center; min-height: 58px;
+           position: relative; outline-offset: 1px; }
+.heat .c .big { font-size: 17px; font-weight: 650; }
+.heat .c .lit { font-size: 12px; }
+.heat .c .badges { display: flex; gap: 2px; justify-content: center; margin-top: 3px; flex-wrap: wrap; }
+.heat .c .badges .badge { font-size: 10px; line-height: 13px; padding: 0 3px;
+                          background: var(--surface); color: var(--ink); border-color: var(--surface); }
+.kgrid { display: grid; gap: 8px; margin-top: 8px; }
+.kgrid .cell { border: 1px solid var(--border); border-radius: 8px; padding: 6px 6px 2px; }
+.kgrid .cell.win { border: 2px solid var(--ink-2); padding: 5px 5px 1px; }
+.kgrid .cell .t { display: flex; justify-content: space-between; align-items: center;
+                  font-size: 12px; color: var(--ink-2); gap: 4px; }
+.scroll { overflow-x: auto; }
+table { border-collapse: collapse; width: 100%; font-size: 14px; }
+th, td { text-align: right; padding: 6px 10px; border-bottom: 1px solid var(--grid);
+         font-variant-numeric: tabular-nums; white-space: nowrap; }
+th:first-child, td:first-child { text-align: left; }
+th { font-weight: 600; color: var(--ink-2); font-size: 13px; }
+td.best { font-weight: 700; }
+tr.picked td { background: color-mix(in srgb, var(--q2) 8%, transparent); }
+.note { font-size: 13px; color: var(--ink-2); border-left: 3px solid var(--axis);
+        padding: 2px 0 2px 10px; margin: 10px 0 0; }
+#tip { position: fixed; pointer-events: none; z-index: 10; display: none;
+       background: var(--surface); color: var(--ink); border: 1px solid var(--border);
+       border-radius: 8px; padding: 8px 10px; font-size: 13px; line-height: 1.4;
+       box-shadow: 0 4px 16px rgba(0,0,0,0.12); max-width: 280px; }
+#tip .row { display: flex; align-items: center; gap: 8px; }
+#tip .row b { font-weight: 650; }
+#tip .row .n { color: var(--ink-2); }
+#tip .hd { color: var(--ink-2); margin-bottom: 2px; }
+.empty { color: var(--muted); font-style: italic; padding: 16px 0; }
+</style>
+</head>
+<body>
+<main id="app"></main>
+<div id="tip"></div>
+<script>
+const DATA = /*REPORT_DATA*/null;
+
+// ---------- small helpers -------------------------------------------------
+const NS = "http://www.w3.org/2000/svg";
+const css = name => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+function el(tag, attrs, parent, text) {
+  const e = document.createElement(tag);
+  for (const [k, v] of Object.entries(attrs || {})) e.setAttribute(k, v);
+  if (text !== undefined) e.textContent = text;
+  if (parent) parent.appendChild(e);
+  return e;
+}
+function sv(tag, attrs, parent, text) {
+  const e = document.createElementNS(NS, tag);
+  for (const [k, v] of Object.entries(attrs || {})) e.setAttribute(k, v);
+  if (text !== undefined) e.textContent = text;
+  if (parent) parent.appendChild(e);
+  return e;
+}
+const fmtInt = n => Math.round(n).toLocaleString("en-US");
+function fmtBp(n) {
+  if (n >= 1e9) return (n / 1e9).toFixed(n >= 1e10 ? 0 : 1) + " Gb";
+  if (n >= 1e6) return (n / 1e6).toFixed(n >= 1e7 ? 0 : 1) + " Mb";
+  if (n >= 1e3) return (n / 1e3).toFixed(n >= 1e4 ? 0 : 1) + " kb";
+  return Math.round(n) + " bp";
+}
+const fmtLen = n => n >= 1000 ? (n / 1000).toFixed(n % 1000 ? 1 : 0) + " kb" : n + " bp";
+const fmtCov = x => x >= 10 ? Math.round(x) + "×" : x.toFixed(1) + "×";
+const cellName = c => DATA.dorado_correct ? `≥ ${fmtLen(c.l)}` : `Q≥${c.q} · ≥ ${fmtLen(c.l)}`;
+// An assembly: its cell, plus "telo" for the telomere-aware hifiasm re-run.
+const asmName = a => cellName(a) + (a.pass === "hifiasm_telo" ? " · telo" : "");
+const cellOf = a => DATA.cells.find(c => c.q === a.q && c.l === a.l);
+
+// Tooltip: rows of [color or null, value, label]. Text goes in via
+// textContent only -- sample and file names are data, not markup.
+const tip = document.getElementById("tip");
+function showTip(ev, head, rows) {
+  tip.replaceChildren();
+  if (head) el("div", {class: "hd"}, tip, head);
+  for (const [color, value, label] of rows) {
+    const r = el("div", {class: "row"}, tip);
+    if (color) { const k = el("span", {class: "key-line"}, r); k.style.background = color; }
+    el("b", {}, r, value);
+    if (label) el("span", {class: "n"}, r, label);
+  }
+  tip.style.display = "block";
+  const w = tip.offsetWidth, h = tip.offsetHeight;
+  let x = ev.clientX + 14, y = ev.clientY + 14;
+  if (x + w > innerWidth - 8) x = ev.clientX - w - 14;
+  if (y + h > innerHeight - 8) y = ev.clientY - h - 14;
+  tip.style.left = x + "px"; tip.style.top = y + "px";
+}
+const hideTip = () => { tip.style.display = "none"; };
+
+function niceTicks(max, n) {
+  if (!(max > 0)) return [0];
+  const raw = max / n, mag = Math.pow(10, Math.floor(Math.log10(raw)));
+  const step = [1, 2, 2.5, 5, 10].map(s => s * mag).find(s => s >= raw);
+  const t = [];
+  // Up to the first tick at or above max, so the top tick clears the data.
+  for (let v = 0; t.length < 2 || t[t.length - 1] < max * 0.9999; v += step) t.push(+v.toFixed(10));
+  return t;
+}
+// Log-scale ticks at 1/2/5 per decade inside [lo, hi].
+function logTicks(lo, hi) {
+  const t = [];
+  for (let e = Math.floor(Math.log10(lo)); e <= Math.ceil(Math.log10(hi)); e++)
+    for (const m of [1, 2, 5]) { const v = m * Math.pow(10, e); if (v >= lo && v <= hi) t.push(v); }
+  return t;
+}
+const tickLen = v => v >= 1000 ? (v / 1000) + " kb" : v + " bp";
+
+// A plot frame: returns {svg, x, y, w, h} with scales already set.
+function frame(parent, opts) {
+  const W = Math.max(300, parent.clientWidth || 600), H = opts.height || 260;
+  const m = {l: 52, r: 16, t: 12, b: 40, ...(opts.margin || {})};
+  const svg = sv("svg", {viewBox: `0 0 ${W} ${H}`, role: "img", "aria-label": opts.label || ""}, parent);
+  const w = W - m.l - m.r, h = H - m.t - m.b;
+  const g = sv("g", {transform: `translate(${m.l},${m.t})`}, svg);
+  let x;
+  if (opts.xlog) {
+    const a = Math.log10(opts.x[0]), b = Math.log10(opts.x[1]);
+    x = v => (Math.log10(Math.max(v, opts.x[0])) - a) / (b - a) * w;
+    x.inv = px => Math.pow(10, a + px / w * (b - a));
+  } else {
+    x = v => (v - opts.x[0]) / (opts.x[1] - opts.x[0]) * w;
+    x.inv = px => opts.x[0] + px / w * (opts.x[1] - opts.x[0]);
+  }
+  const y = v => h - v / opts.y[1] * h;
+  // Recessive grid + y ticks.
+  for (const t of opts.yticks) {
+    sv("line", {x1: 0, x2: w, y1: y(t), y2: y(t), stroke: css(t === 0 ? "--axis" : "--grid"), "stroke-width": 1}, g);
+    sv("text", {x: -8, y: y(t) + 4, "text-anchor": "end"}, g, opts.yfmt(t));
+  }
+  // Skip x ticks that would crowd the previous label.
+  let lastX = -1e9;
+  for (const t of opts.xticks) {
+    const label = opts.xfmt(t), px = x(t);
+    if (px - lastX < label.length * 7 + 6) continue;
+    sv("text", {x: px, y: h + 18, "text-anchor": "middle"}, g, label);
+    lastX = px;
+  }
+  if (opts.xlabel) sv("text", {x: w / 2, y: h + 34, "text-anchor": "middle", class: "ink2"}, g, opts.xlabel);
+  if (opts.ylabel) sv("text", {x: -m.l + 2, y: -12, "text-anchor": "start", class: "ink2"}, g, opts.ylabel);
+  return {svg, g, x, y, w, h};
+}
+
+function legend(parent, items) {
+  const L = el("div", {class: "legend"}, parent);
+  for (const [color, label, kind] of items) {
+    const s = el("span", {}, L);
+    const k = el("span", {class: kind === "box" ? "key-box" : kind === "vline" ? "key-vline" : "key-line"}, s);
+    k.style.background = color;
+    s.appendChild(document.createTextNode(label));
+  }
+}
+
+function section(app, title, sub) {
+  el("h2", {}, app, title);
+  if (sub) el("p", {class: "sub"}, app, sub);
+}
+function card(parent, title, howto) {
+  const c = el("div", {class: "card"}, parent);
+  if (title) el("h3", {}, c, title);
+  if (howto) { const p = el("p", {class: "howto"}, c); p.innerHTML = howto; }  // fixed text below, never data
+  return c;
+}
+
+// ---------- the read histograms -------------------------------------------
+// reads.hist[i][j]: bases in length bin i (len_edges[i] .. len_edges[i+1])
+// and mean-quality bin j (q_edges[j] .. q_edges[j+1]). chopper keeps a read
+// when its mean Q >= min_q and length >= min_len, and every grid cutoff is
+// itself a bin edge, so summing bins gives what each cell keeps exactly.
+function basesByLength(minQ) {
+  const R = DATA.reads, out = new Array(R.len_edges.length - 1).fill(0);
+  R.hist.forEach((row, i) => row.forEach((b, j) => { if (R.q_edges[j] >= minQ) out[i] += b; }));
+  return out;
+}
+function basesByQ() {
+  const R = DATA.reads, out = new Array(R.q_edges.length - 1).fill(0);
+  R.hist.forEach(row => row.forEach((b, j) => { out[j] += b; }));
+  return out;
+}
+// Bases kept by min_len = edge e: everything in bins starting at or above e.
+const keptAbove = perLen => {
+  const out = new Array(perLen.length + 1).fill(0);
+  for (let i = perLen.length - 1; i >= 0; i--) out[i] = out[i + 1] + perLen[i];
+  return out;
+};
+
+const qColors = () => {
+  const qs = DATA.grid.min_q;
+  const pal = qs.length === 1 ? ["--q2"] : qs.length === 2 ? ["--q1", "--q3"] : ["--q1", "--q2", "--q3"];
+  return Object.fromEntries(qs.map((q, i) => [q, css(pal[Math.min(i, pal.length - 1)])]));
+};
+
+// Length distribution: one line per min_q (plus all reads), cutoffs marked.
+function lengthChart(parent) {
+  const R = DATA.reads, E = R.len_edges, G = DATA.grid;
+  const lo = Math.max(E[0], 500), hi = E[E.length - 1];
+  const series = [];
+  if (!DATA.dorado_correct) {
+    series.push({label: "all reads", color: css("--all"), v: basesByLength(-1), width: 1.5});
+    for (const q of G.min_q) series.push({label: `mean Q ≥ ${q}`, color: qColors()[q], v: basesByLength(q), width: 2});
+  } else {
+    series.push({label: `before correction (Q ≥ ${DATA.dorado_q}, ≥ ${fmtLen(DATA.dorado_len)})`, color: css("--all"),
+                 v: basesByLength(DATA.dorado_q).map((b, i) => E[i] >= DATA.dorado_len ? b : 0), width: 1.5});
+    series.push({label: "after correction", color: css("--q2"), v: R.corrected, width: 2});
+  }
+  // Per log-width bin, so a wide bin doesn't look taller than a narrow one:
+  // y is bases per tenth of a decade of read length.
+  const dens = s => s.v.map((b, i) => b / ((Math.log10(E[i + 1]) - Math.log10(E[i])) * 10));
+  for (const s of series) s.d = dens(s);
+  const ymax = Math.max(...series.flatMap(s => s.d.filter((_, i) => E[i + 1] > lo))) * 1.08;
+  const yt = niceTicks(ymax / 1e9, 4).map(t => t * 1e9);
+  const f = frame(parent, {x: [lo, hi], xlog: true, y: [0, yt[yt.length - 1]], yticks: yt,
+    yfmt: t => (t / 1e9).toString(), xticks: logTicks(lo, hi), xfmt: tickLen,
+    xlabel: "read length (log scale)", ylabel: "Gb of reads", height: 270, margin: {t: 22},
+    label: "Read length distribution"});
+  // Cutoff lines.
+  for (const l of G.min_len)
+    sv("line", {x1: f.x(l), x2: f.x(l), y1: 0, y2: f.h, stroke: css("--axis"), "stroke-width": 1}, f.g);
+
+  const mids = E.slice(0, -1).map((e, i) => Math.sqrt(e * E[i + 1]));
+  for (const s of series) {
+    const pts = s.d.map((v, i) => [f.x(mids[i]), f.y(v)]).filter((_, i) => mids[i] >= lo);
+    sv("path", {d: "M" + pts.map(p => p.join(",")).join("L"), fill: "none", stroke: s.color,
+                "stroke-width": s.width, "stroke-linejoin": "round", "stroke-linecap": "round"}, f.g);
+  }
+  crosshair(f, mids.filter(m => m >= lo), i => {
+    const k = mids.findIndex(m => m >= lo) + i;
+    return [`${fmtBp(E[k])} – ${fmtBp(E[k + 1])}`,
+            series.map(s => [s.color, fmtBp(s.v[k]), s.label])];
+  });
+  legend(parent, series.map(s => [s.color, s.label]).concat(
+    [[css("--axis"), "length cutoffs " + G.min_len.map(l => l / 1000).join(", ") + " kb", "vline"]]));
+}
+
+// Vertical crosshair snapping to the nearest x position; rowsAt(i) gives the
+// tooltip for position i.
+function crosshair(f, xs, rowsAt) {
+  const line = sv("line", {y1: 0, y2: f.h, stroke: css("--muted"), "stroke-width": 1, visibility: "hidden"}, f.g);
+  const hit = sv("rect", {x: 0, y: 0, width: f.w, height: f.h, fill: "transparent"}, f.g);
+  const px = xs.map(v => f.x(v));
+  hit.addEventListener("pointermove", ev => {
+    const r = f.svg.getBoundingClientRect(), scale = f.svg.viewBox.baseVal.width / r.width;
+    const mx = (ev.clientX - r.left) * scale - (f.g.transform.baseVal[0].matrix.e);
+    let best = 0;
+    px.forEach((p, i) => { if (Math.abs(p - mx) < Math.abs(px[best] - mx)) best = i; });
+    line.setAttribute("x1", px[best]); line.setAttribute("x2", px[best]);
+    line.setAttribute("visibility", "visible");
+    const [head, rows] = rowsAt(best);
+    showTip(ev, head, rows);
+  });
+  hit.addEventListener("pointerleave", () => { line.setAttribute("visibility", "hidden"); hideTip(); });
+}
+
+// Coverage kept as the length cutoff rises, one line per min_q; a dot per
+// grid cell (from what hifiasm actually got).
+function coverageChart(parent) {
+  const R = DATA.reads, E = R.len_edges, G = DATA.grid, gs = DATA.genome_size;
+  const lo = Math.max(E[0], 500), hi = Math.max(lo * 10, Math.min(E[E.length - 1], Math.max(...G.min_len) * 4));
+  const qs = DATA.dorado_correct ? [null] : G.min_q;
+  const series = qs.map(q => {
+    const kept = DATA.dorado_correct ? keptAbove(R.corrected) : keptAbove(basesByLength(q));
+    return {q, label: q === null ? "corrected reads" : `mean Q ≥ ${q}`,
+            color: q === null ? css("--q2") : qColors()[q], kept};
+  });
+  const ymax = Math.max(...series.map(s => s.kept[E.findIndex(e => e >= lo)] / gs),
+                        ...DATA.cells.map(c => c.bases / gs)) * 1.08;
+  const yt = niceTicks(ymax, 4);
+  const f = frame(parent, {x: [lo, hi], xlog: true, y: [0, yt[yt.length - 1]], yticks: yt,
+    yfmt: t => t + "×", xticks: logTicks(lo, hi), xfmt: tickLen,
+    xlabel: "minimum read length kept (log scale)", ylabel: "coverage left", height: 270, margin: {t: 22},
+    label: "Coverage left after filtering"});
+  const idx = E.map((e, i) => i).filter(i => E[i] >= lo && E[i] <= hi);
+  for (const s of series) {
+    const pts = idx.map(i => [f.x(E[i]), f.y(s.kept[i] / gs)]);
+    sv("path", {d: "M" + pts.map(p => p.join(",")).join("L"), fill: "none", stroke: s.color,
+                "stroke-width": 2, "stroke-linejoin": "round"}, f.g);
+  }
+  crosshair(f, idx.map(i => E[i]), k => {
+    const i = idx[k];
+    return [`reads ≥ ${fmtBp(E[i])}`, series.map(s => [s.color, fmtCov(s.kept[i] / gs), s.label])];
+  });
+  // Dots for the grid cells, drawn after the hit layer so they get their own hover.
+  for (const c of DATA.cells) {
+    const s = series.find(s => s.q === (DATA.dorado_correct ? null : c.q));
+    const cx = f.x(c.l), cy = f.y(c.bases / gs);
+    const win = winnersOf(c);
+    const dot = sv("circle", {cx, cy, r: win.length ? 6 : 4.5, fill: s.color,
+                              stroke: css("--surface"), "stroke-width": 2}, f.g);
+    if (win.length) {
+      sv("circle", {cx, cy, r: 9, fill: "none", stroke: css("--ink-2"), "stroke-width": 1.5}, f.g);
+      sv("text", {x: cx - 12, y: cy + 4, "text-anchor": "end", class: "ink"}, f.g, win.map(w => SEL[w].short).join(" "));
+    }
+    const hit = sv("circle", {cx, cy, r: 12, fill: "transparent"}, f.g);
+    hit.addEventListener("pointermove", ev => showTip(ev, cellName(c), [
+      [s.color, fmtCov(c.bases / gs), "coverage hifiasm got" + (c.capped ? " (capped)" : "")],
+      [null, fmtBp(c.n50), "read N50"],
+      [null, fmtInt(c.reads), "reads"],
+      ...win.map(w => [null, SEL[w].long, "picked this cell"])]));
+    hit.addEventListener("pointerleave", hideTip);
+    dot.style.pointerEvents = "none";
+  }
+  legend(parent, series.map(s => [s.color, s.label]));
+}
+
+function qualityChart(parent) {
+  const R = DATA.reads, E = R.q_edges, G = DATA.grid;
+  const v = basesByQ();
+  // Up to the next multiple of 5 past the best read, at most Q50.
+  const last = v.reduce((a, b, j) => b > 0 ? j : a, 0);
+  const lo = 0, hi = Math.min(Math.ceil(E[last + 1] / 5) * 5, 50);
+  // Bars of 1 Q unit (bins may be finer, at the cutoffs).
+  const unit = [];
+  for (let q = lo; q < hi; q++) unit.push({q, b: 0});
+  v.forEach((b, j) => { const k = Math.floor(E[j]); if (k >= lo && k < hi) unit[k - lo].b += b; });
+  const yt = niceTicks(Math.max(...unit.map(u => u.b)) / 1e9 * 1.08, 4).map(t => t * 1e9);
+  const f = frame(parent, {x: [lo, hi], y: [0, yt[yt.length - 1]], yticks: yt,
+    yfmt: t => (t / 1e9).toString(), xticks: niceTicks(hi, 5).filter(t => t <= hi), xfmt: t => "Q" + t,
+    xlabel: "mean read quality", ylabel: "Gb of reads", height: 270, margin: {t: 22}, label: "Read quality distribution"});
+  const bw = f.x(1) - f.x(0);
+  for (const u of unit) {
+    if (!u.b) continue;
+    const top = f.y(u.b), x0 = f.x(u.q) + 1, w = Math.min(24, bw - 2);
+    const r = Math.min(4, w / 2, f.h - top);
+    sv("path", {d: `M${x0},${f.h}V${top + r}Q${x0},${top} ${x0 + r},${top}H${x0 + w - r}Q${x0 + w},${top} ${x0 + w},${top + r}V${f.h}Z`,
+                fill: css("--bar")}, f.g);
+    const hit = sv("rect", {x: f.x(u.q), y: 0, width: bw, height: f.h, fill: "transparent"}, f.g);
+    hit.addEventListener("pointermove", ev => showTip(ev, `mean Q ${u.q}–${u.q + 1}`, [[css("--bar"), fmtBp(u.b), "of reads"]]));
+    hit.addEventListener("pointerleave", hideTip);
+  }
+  const qs = DATA.dorado_correct ? [DATA.dorado_q] : G.min_q;
+  for (const q of qs) {
+    sv("line", {x1: f.x(q), x2: f.x(q), y1: 0, y2: f.h, stroke: css("--ink-2"), "stroke-width": 1, "stroke-dasharray": "3 3"}, f.g);
+    sv("text", {x: f.x(q) + 3, y: 10, class: "ink2"}, f.g, "Q" + q);
+  }
+}
+
+// Grid heatmap: coverage per cell, read N50 underneath, winners badged.
+function gridHeat(parent) {
+  const G = DATA.grid, gs = DATA.genome_size;
+  const rows = DATA.dorado_correct ? [null] : G.min_q;
+  const H = el("div", {class: "heat"}, parent);
+  H.style.gridTemplateColumns = `auto repeat(${G.min_len.length}, minmax(64px, 1fr))`;
+  el("div", {}, H);
+  for (const l of G.min_len) el("div", {class: "h"}, H, "≥ " + fmtLen(l));
+  const covs = DATA.cells.map(c => c.bases / gs);
+  const cmin = Math.min(...covs), cmax = Math.max(...covs);
+  for (const q of rows) {
+    el("div", {class: "r"}, H, q === null ? "corrected" : "Q ≥ " + q);
+    for (const l of G.min_len) {
+      const c = DATA.cells.find(c => c.l === l && (q === null || c.q === q));
+      const d = el("div", {class: "c", tabindex: 0}, H);
+      if (!c) { d.textContent = "–"; continue; }
+      const t = cmax > cmin ? (c.bases / gs - cmin) / (cmax - cmin) : 1;
+      const fill = `color-mix(in oklab, ${css("--seq-1")} ${Math.round(15 + t * 85)}%, ${css("--seq-0")})`;
+      d.style.background = fill;
+      // Ink by fill lightness: dark fills get light text.
+      const darkFill = document.documentElement.matches(":root") && isDarkText(t);
+      d.style.color = darkFill ? "#0b0b0b" : "#f0efec";
+      el("div", {class: "big"}, d, fmtCov(c.bases / gs));
+      el("div", {class: "lit"}, d, "N50 " + fmtBp(c.n50));
+      const win = winnersOf(c);
+      if (win.length) {
+        const b = el("div", {class: "badges"}, d);
+        for (const w of win) el("span", {class: "badge"}, b, SEL[w].short);
+      }
+      const tipRows = ev => showTip(ev, cellName(c), [
+        [null, fmtCov(c.bases / gs), "coverage" + (c.capped ? " (capped)" : "")],
+        [null, fmtBp(c.bases), "of reads"], [null, fmtBp(c.n50), "read N50"],
+        [null, fmtInt(c.reads), "reads"], ...win.map(w => [null, SEL[w].long, "picked this cell"])]);
+      d.addEventListener("pointermove", tipRows);
+      d.addEventListener("pointerleave", hideTip);
+    }
+  }
+}
+// The seq ramp runs light->dark in light mode and dark->light in dark mode;
+// text flips to stay readable.
+function isDarkText(t) {
+  const dark = css("--surface").toLowerCase() === "#1a1a19";
+  return dark ? t > 0.55 : t < 0.45;
+}
+
+// ---------- k-mer spectra -------------------------------------------------
+function kmerPanels(parent) {
+  const G = DATA.grid, cells = DATA.cells;
+  const have = cells.filter(c => c.kmer);
+  if (!have.length) { el("p", {class: "empty"}, parent, "hifiasm's k-mer histograms are not in this run's logs."); return; }
+  // Scrolls sideways on a narrow screen rather than squeezing the panels.
+  const K = el("div", {class: "kgrid"}, el("div", {class: "scroll"}, parent));
+  K.style.gridTemplateColumns = `repeat(${G.min_len.length}, minmax(150px, 1fr))`;
+  const rows = DATA.dorado_correct ? [null] : G.min_q;
+  for (const q of rows) for (const l of G.min_len) {
+    const c = cells.find(c => c.l === l && (q === null || c.q === q));
+    const win = c ? winnersOf(c) : [];
+    const box = el("div", {class: "cell" + (win.length ? " win" : "")}, K);
+    const t = el("div", {class: "t"}, box);
+    el("span", {}, t, c ? cellName(c) : "");
+    if (win.length) { const b = el("span", {}, t); for (const w of win) el("span", {class: "badge"}, b, SEL[w].short); }
+    if (!c || !c.kmer || c.kmer.counts.length < 3) { el("div", {class: "empty"}, box, "no histogram"); continue; }
+    kmerChart(box, c);
+  }
+}
+function kmerChart(parent, c) {
+  const k = c.kmer, n = k.counts.length, xmax = n;
+  // The left end (k-mers seen once or twice: mostly sequencing errors) can
+  // be 30x the main peak; scale to the peak and let those bars run off.
+  const firstLow = k.counts.findIndex((v, i) => i > 0 && v <= k.counts[i + 1]);
+  const peakV = Math.max(...k.counts.slice(Math.max(1, firstLow)));
+  const ymax = peakV * 1.25;
+  // Drawn at the panel's real width, so text stays the same size however many columns there are.
+  const W = Math.max(150, (parent.clientWidth || 212) - 12), Hh = 120, m = {l: 4, r: 4, t: 26, b: 18}, w = W - m.l - m.r, h = Hh - m.t - m.b;
+  const svg = sv("svg", {viewBox: `0 0 ${W} ${Hh}`, role: "img", "aria-label": "k-mer spectrum " + cellName(c)}, parent);
+  const g = sv("g", {transform: `translate(${m.l},${m.t})`}, svg);
+  const bw = w / xmax;
+  sv("line", {x1: 0, x2: w, y1: h, y2: h, stroke: css("--axis")}, g);
+  k.counts.forEach((v, i) => {
+    const depth = i + 1, off = v > ymax, top = off ? 0 : h - v / ymax * h;
+    const isPeak = depth === k.peak;
+    const x0 = i * bw + 0.5, bwid = Math.max(1, bw - 1);
+    sv("rect", {x: x0, y: top, width: bwid, height: h - top, rx: Math.min(1.5, bwid / 2),
+                fill: off ? css("--bar-off") : css("--bar"), opacity: isPeak || off ? 1 : 0.75}, g);
+    if (off && i === 0) sv("text", {x: 0, y: -14, "font-size": 10}, g, "↑ errors (off scale)");
+    const hit = sv("rect", {x: i * bw, y: 0, width: bw, height: h, fill: "transparent"}, g);
+    hit.addEventListener("pointermove", ev => showTip(ev, `seen ${depth}×`,
+      [[css("--bar"), fmtInt(v), "distinct k-mers"]]));
+    hit.addEventListener("pointerleave", hideTip);
+  });
+  if (k.peak) {
+    const px = (k.peak - 0.5) * bw;
+    sv("text", {x: Math.min(Math.max(px, 24), w - 24), y: h - peakV / ymax * h - 4, "text-anchor": "middle", "font-size": 11, class: "ink"}, g, "peak " + k.peak + "×");
+  }
+  for (const t of [1, ...niceTicks(xmax, 3).filter(t => t > 0 && t <= xmax)])
+    sv("text", {x: (t - 0.5) * bw, y: h + 13, "text-anchor": "middle", "font-size": 10}, g, t);
+  if (k.het) sv("text", {x: w, y: 10, "text-anchor": "end", "font-size": 10, class: "ink2"}, g, "2nd peak at " + k.het + "×");
+}
+
+// ---------- BUSCO ---------------------------------------------------------
+const BUSCO_PARTS = [["S", "--s", "complete, single copy"], ["D", "--d", "complete, duplicated"],
+                     ["F", "--f", "fragmented"], ["M", "--m", "missing"]];
+function buscoChart(parent) {
+  const rows = [];
+  for (const a of DATA.assemblies) rows.push({label: asmName(a), b: a.busco, win: winnersOfAsm(a)});
+  rows.push(null);
+  for (const fz of DATA.finals) rows.push({label: SEL[fz.selector].long + (fz.stage ? " · " + fz.stage : ""), b: fz.busco, win: []});
+  const W = Math.max(320, parent.clientWidth || 600), labW = Math.min(230, W * 0.36), rh = 22, gap = 6, sep = 18;
+  const H = rows.reduce((a, r) => a + (r ? rh + gap : sep), 0) + 24;
+  const svg = sv("svg", {viewBox: `0 0 ${W} ${H}`, role: "img", "aria-label": "BUSCO results"}, parent);
+  const valW = 118, w = W - labW - valW - 8;
+  let y = 0;
+  for (const t of [0, 25, 50, 75, 100]) {
+    sv("line", {x1: labW + t / 100 * w, x2: labW + t / 100 * w, y1: 0, y2: H - 20, stroke: css("--grid")}, svg);
+    sv("text", {x: labW + t / 100 * w, y: H - 6, "text-anchor": "middle"}, svg, t + "%");
+  }
+  for (const r of rows) {
+    if (!r) {
+      sv("line", {x1: 0, x2: W, y1: y + sep / 2, y2: y + sep / 2, stroke: css("--axis")}, svg);
+      y += sep; continue;
+    }
+    sv("text", {x: labW - 8, y: y + rh / 2 + 4, "text-anchor": "end", class: r.win.length ? "ink" : "ink2",
+                "font-weight": r.win.length ? 600 : 400}, svg, r.label + (r.win.length ? "  " + r.win.map(w => SEL[w].short).join(" ") : ""));
+    if (!r.b) {
+      sv("text", {x: labW + 4, y: y + rh / 2 + 4, "font-style": "italic"}, svg, "not run (assembly empty or too small)");
+      y += rh + gap; continue;
+    }
+    let x = labW;
+    const parts = BUSCO_PARTS.filter(([k]) => r.b[k] > 0);
+    parts.forEach(([k, col], i) => {
+      const pw = r.b[k] / 100 * w, last = i === parts.length - 1, first = i === 0;
+      const segW = Math.max(0, pw - (last ? 0 : 2));
+      const rad = Math.min(4, segW / 2);
+      // Rounded only at the bar's two outer ends.
+      const rl = first ? rad : 0, rr = last ? rad : 0;
+      sv("path", {d: `M${x + rl},${y}H${x + segW - rr}Q${x + segW},${y} ${x + segW},${y + rr}V${y + rh - rr}Q${x + segW},${y + rh} ${x + segW - rr},${y + rh}H${x + rl}Q${x},${y + rh} ${x},${y + rh - rl}V${y + rl}Q${x},${y} ${x + rl},${y}Z`,
+                  fill: css(col)}, svg);
+      x += pw;
+    });
+    sv("text", {x: W - 4, y: y + rh / 2 + 4, "text-anchor": "end", class: "ink"}, svg, "C " + (r.b.S + r.b.D).toFixed(1) + "%  ·  D " + r.b.D.toFixed(1) + "%");
+    const hit = sv("rect", {x: 0, y, width: W, height: rh, fill: "transparent"}, svg);
+    hit.addEventListener("pointermove", ev => showTip(ev, r.label,
+      BUSCO_PARTS.map(([k, col, lab]) => [css(col), r.b[k].toFixed(1) + "%", lab]).concat([[null, fmtInt(r.b.n), "BUSCO genes searched"]])));
+    hit.addEventListener("pointerleave", hideTip);
+    y += rh + gap;
+  }
+  legend(parent, BUSCO_PARTS.map(([k, col, lab]) => [css(col), lab, "box"]));
+}
+
+// ---------- the scoreboard ------------------------------------------------
+function scoreboard(parent) {
+  const gs = DATA.genome_size, rows = DATA.assemblies, t2t = rows.some(a => a.t2t !== null && a.t2t !== undefined);
+  const S = el("div", {class: "scroll"}, parent);
+  const T = el("table", {}, S);
+  const cols = [["Filter"], ["Coverage"], ["Read N50"], ["Assembly"], ["Contigs"], ["BUSCO complete"]];
+  if (t2t) cols.push(["T2T contigs"]);
+  cols.push(["Picked by"]);
+  const hr = el("tr", {}, el("thead", {}, T));
+  for (const [c] of cols) el("th", {}, hr, c);
+  const tb = el("tbody", {}, T);
+  const ok = rows.filter(a => a.contigs);
+  const minC = Math.min(...ok.map(a => a.contigs));
+  const maxB = Math.max(...ok.map(a => a.busco ? a.busco.S + a.busco.D : 0));
+  const maxT = t2t ? Math.max(...ok.map(a => a.t2t || 0)) : 0;
+  for (const a of rows) {
+    const win = winnersOfAsm(a), c = cellOf(a);
+    const tr = el("tr", {class: win.length ? "picked" : ""}, tb);
+    el("td", {}, tr, asmName(a));
+    el("td", {}, tr, c && c.bases ? fmtCov(c.bases / gs) + (c.capped ? " (capped)" : "") : "–");
+    el("td", {}, tr, c && c.n50 ? fmtBp(c.n50) : "–");
+    el("td", {}, tr, a.asm_len ? fmtBp(a.asm_len) : "–");
+    el("td", {class: a.contigs && a.contigs === minC ? "best" : ""}, tr, a.contigs ? fmtInt(a.contigs) : "–");
+    const bc = a.busco ? a.busco.S + a.busco.D : null;
+    el("td", {class: bc !== null && bc === maxB ? "best" : ""}, tr, bc === null ? "not run" : bc.toFixed(1) + "%");
+    if (t2t) el("td", {class: a.t2t && a.t2t === maxT ? "best" : ""}, tr, a.t2t === null || a.t2t === undefined ? "–" : String(a.t2t));
+    const p = el("td", {}, tr);
+    for (const w of win) { el("span", {class: "badge"}, p, SEL[w].long); p.appendChild(document.createTextNode(" ")); }
+  }
+}
+
+// ---------- page ----------------------------------------------------------
+const SEL = {
+  lowest_contig: {short: "LC", long: "lowest contig"},
+  highest_busco: {short: "HB", long: "highest BUSCO"},
+  most_t2t:      {short: "T2T", long: "most T2T"},
+};
+// A selector picks one assembly; its reads are one grid cell (either pass).
+const winnersOf = c => Object.keys(DATA.winners).filter(s => DATA.winners[s].q === c.q && DATA.winners[s].l === c.l);
+const winnersOfAsm = a => Object.keys(DATA.winners).filter(s => {
+  const w = DATA.winners[s]; return w.pass === a.pass && w.q === a.q && w.l === a.l; });
+const hasTelo = () => DATA.assemblies.some(a => a.pass === "hifiasm_telo");
+
+function render() {
+  const app = document.getElementById("app");
+  app.replaceChildren();
+  document.title = DATA.sample + " – assembly report";
+  el("h1", {}, app, DATA.sample);
+  el("p", {class: "sub"}, app, "What the read filters kept, what hifiasm made of each grid cell, and which cell each selector picked.");
+  const gs = DATA.genome_size;
+  const K = el("div", {class: "kpis"}, app);
+  const kpi = (v, l) => { const d = el("div", {class: "kpi"}, K); el("div", {class: "v"}, d, v); el("div", {class: "l"}, d, l); };
+  kpi(fmtBp(DATA.reads_total.bases), "sequenced, " + fmtInt(DATA.reads_total.reads) + " reads");
+  kpi(fmtCov(DATA.reads_total.bases / gs), "coverage before filtering");
+  kpi(fmtBp(DATA.reads_total.n50), "read N50 before filtering");
+  kpi(fmtBp(gs), "genome size (" + DATA.genome_size_from + ")");
+  kpi(String(DATA.cells.length), "grid cells assembled");
+
+  section(app, "1 · Reads", "Every cell of the filter grid keeps the reads that pass both its quality and its length cutoff. Stricter cutoffs keep better reads, but fewer of them.");
+  const two = el("div", {class: "two"}, app);
+  lengthChart(card(two, "Read lengths",
+    DATA.dorado_correct
+      ? "How much sequence sits at each read length, <b>before and after dorado correct</b>. Correction trims and splits reads, so the curve moves left. The vertical lines are the grid's length cutoffs."
+      : "How much sequence sits at each read length. <b>Each line keeps only reads at or above one quality cutoff</b>; the vertical lines are the grid's length cutoffs. A cell keeps the part of its line to the right of its cutoff."));
+  coverageChart(card(two, "Coverage left after filtering",
+    "How many times over the genome the kept reads cover it, as the length cutoff rises. <b>Dots are the grid cells</b>; the ringed ones were picked. Moving right trades coverage for longer reads."));
+  const two2 = el("div", {class: "two"}, app);
+  qualityChart(card(two2, "Read quality",
+    DATA.dorado_correct
+      ? "Mean quality per read before correction, with the quality cutoff dorado correct's input used. Q20 means about 1 error in 100 bases. Corrected reads carry no real quality, so the grid only filters them by length."
+      : "Mean quality per read, as chopper computes it. <b>Q10 is about 1 error in 10 bases, Q20 about 1 in 100.</b> The dashed lines are the grid's quality cutoffs."));
+  gridHeat(card(two2, "Each grid cell",
+    "Coverage of the reads each cell gave hifiasm (darker is more), with their read N50: half the sequence is in reads at least this long. Badges mark the cells the selectors picked."));
+  if (DATA.capped) el("p", {class: "note"}, app, "This sample is capped to a maximum coverage before assembly, so the cells' dots and coverage are the capped read sets; the curves show the reads before the cap.");
+
+  section(app, "2 · hifiasm k-mer spectra", "hifiasm cuts the reads into short words (k-mers) and counts how often each one occurs. The shape of that histogram tells you about the genome and the reads.");
+  kmerPanels(card(app, null,
+    "<b>X: how many times a k-mer was seen. Y: how many different k-mers were seen that often.</b> " +
+    "A tall bar at the far left is sequencing errors (k-mers seen once or twice), cut off here so the rest stays visible. " +
+    "The main peak is the genome; its position is roughly the coverage after hifiasm's own correction, so it is lower than the read coverage above. " +
+    "One clean peak means a haploid or fully homozygous genome. A second peak at half the main one means two different copies (a diploid, heterozygous genome, or a mix of strains); " +
+    "a long tail to the right is repeats. Panels with too little coverage show a low, flat peak. These histograms are from the end of hifiasm's read correction."));
+
+  section(app, "3 · BUSCO", "BUSCO searches each assembly for genes that nearly every species in the lineage (" + DATA.busco_lineage + ") has in exactly one copy.");
+  buscoChart(card(app, null,
+    "<b>More of the bar in the two left colours is better.</b> Missing genes usually mean missing or broken sequence. " +
+    "<b>Watch the duplicated share</b>: a few percent is normal, but a large share means parts of the genome are in the assembly twice (uncollapsed haplotypes or a contaminated culture). " +
+    (hasTelo() ? "Rows marked telo are the same cells re-assembled with hifiasm's telomere option; empty when the telomere motif didn't qualify for a re-run. " : "") +
+    "The rows below the line are the final assemblies" + (DATA.polished ? ", before and after polishing." : ".")));
+
+  section(app, "4 · Why these cells", "All grid assemblies side by side. Bold marks the best value in each column; each selector picks by one of them.");
+  scoreboard(card(app, null, "<b>lowest contig</b> picks the fewest contigs, <b>highest BUSCO</b> the most complete genes" +
+    (DATA.winners.most_t2t ? ", <b>most T2T</b> the most contigs with a telomere at both ends" : "") +
+    ". Assemblies smaller than the sample's minimum assembly size are never picked." +
+    (hasTelo() ? " Rows marked telo are the telomere-aware re-run of the same cells; the selectors choose across both." : "")));
+  el("p", {class: "small", style: "margin-top:24px"}, app, "Made by the T2T fungal genome pipeline, " + DATA.generated + ".");
+}
+
+if (DATA) {
+  render();
+  let rt;
+  addEventListener("resize", () => { clearTimeout(rt); rt = setTimeout(render, 150); });
+  matchMedia("(prefers-color-scheme: dark)").addEventListener("change", render);
+}
+</script>
+</body>
+</html>

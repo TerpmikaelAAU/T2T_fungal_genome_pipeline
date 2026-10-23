@@ -41,7 +41,7 @@ jobs:
           cfg["samples"]["sample_e"] = {"type": "sra", "accession": "SRR36829119"}
           cfg["phylogeny"]["enabled"] = True
           cfg["telomere"]["enabled"] = True
-          for key in ("bags", "contamination"):
+          for key in ("bags", "contamination", "report"):
               if key in cfg:
                   cfg[key]["enabled"] = True
           yaml.safe_dump(cfg, open("$RUNNER_TEMP/all_on.yaml", "w"))
@@ -53,7 +53,7 @@ jobs:
           python - <<PY
           import yaml
           cfg = yaml.safe_load(open("config/config.yaml"))
-          for key in ("phylogeny", "telomere", "bags", "contamination"):
+          for key in ("phylogeny", "telomere", "bags", "contamination", "report"):
               if key in cfg:
                   cfg[key]["enabled"] = False
           yaml.safe_dump(cfg, open("$RUNNER_TEMP/all_off.yaml", "w"))
