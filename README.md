@@ -27,7 +27,8 @@ FASTQ, or the accession of a public run on SRA/ENA), the pipeline:
    "Entry points")
    (once per distinct assembly, when several selectors pick the same one).
 5. Runs BUSCO on each winner -- before and after polishing when it is
-   polished -- and reports read/assembly stats and coverage.
+   polished -- and reports read/assembly stats and coverage, plus a
+   per-sample HTML report with charts of the grid (see "The report" below).
 6. Optionally recovers an organelle genome via `flye` + `GetOrganelle`.
 7. Finds each sample's telomere motif (tidk), reports telomeres on every
    final assembly, optionally re-assembles with the motif
@@ -165,6 +166,7 @@ Duplex data (`dorado duplex`) needs no extra key; see "Duplex data" below.
 | `telomere.*` | see "Telomeres" | |
 | `contamination.enabled` | `true` | Tiara screen; see "Contamination screen". |
 | `contamination.min_len` | `3000` | Tiara doesn't classify contigs shorter than this. |
+| `report.enabled` | `true` | Per-sample HTML report, new runs only; see "The report". |
 | `phylogeny.enabled` | `false` | Genus-level tree; see "Phylogeny". |
 | `phylogeny.taxon` | `"Fungi"` | Any NCBI taxon name or taxid, e.g. `Ascomycota`, `Eurotiomycetes`. Changing it means deleting `data/phylogeny/`. |
 | `bags.enabled` | `false` | Annotation; see "Annotation (BAGS)". |
@@ -478,6 +480,7 @@ with `--notemp` to keep everything while debugging.
 
 ```
 results/<sample>/
+  report.html                         # report: enabled -- charts of the reads, grid, k-mer spectra, BUSCO and picks; open in a browser (see "The report")
   read_stats.tsv                      # seqkit stats for the raw (and trimmed) reads, dorado correct's input and output (when on), and what hifiasm got per grid cell
   polish_groups.tsv                   # polished samples only: which selectors picked the same assembly (polished once)
 
@@ -506,7 +509,7 @@ results/phylogeny/                    # only if phylogeny: enabled: true
   ufcg_concatenated_alignment.fasta   # the concatenated UFCG core-gene protein alignment behind it
   tip_labels.tsv                      # tip label -> accession, organism, phylum/class/order/family (e.g. for iTOL)
 
-logs/                   # per-rule, per-sample logs
+logs/                   # per-rule, per-sample logs (logs/hifiasm/: hifiasm's own output per grid cell)
 snake_log/               # the Snakemake orchestrator's own run logs
 ```
 
@@ -515,13 +518,48 @@ All selectors run all the way through independently -- there is no single
 `lowest_contig/`, `highest_busco/` and `most_t2t/summary.txt` and pick
 whichever looks better for your genome.
 
+### The report
+
+`results/<sample>/report.html` is one self-contained page (no internet
+needed) for reading the grid without the tools, written for people who
+don't assemble genomes every day. It shows:
+
+1. **Reads** -- how much sequence sits at each read length and mean
+   quality, as chopper sees them before filtering; how much coverage each
+   length cutoff leaves; and each grid cell's coverage and read N50.
+2. **hifiasm k-mer spectra** -- one panel per grid cell, from hifiasm's
+   log (the histogram after its read correction), with the main peak
+   marked. The text under the heading explains how to read them (errors,
+   genome peak, heterozygosity, repeats).
+3. **BUSCO** -- every grid assembly, and the final assemblies (before and
+   after polishing when polished).
+4. **Why these cells** -- all grid assemblies side by side, the best value
+   of each column in bold, and which selector picked which.
+
+Hover over any chart for the numbers. The page follows the browser's light
+or dark setting.
+
+It is on by default (`report: enabled: true`) and built for **new runs
+only**. It needs the reads going into the filter grid and the grid's BUSCO
+results, and both are `temp()` files that a finished run has already
+deleted; asking for the report there would rebuild them, which can mean
+re-running hifiasm for every grid cell. So a sample gets a report when it
+hasn't started yet (no `results/<sample>/` and no hifiasm run), or when
+those files are still there or still to come. Samples assembled before
+this report existed have no `logs/hifiasm/` logs, so a report made for
+them mid-run shows "no histogram" for the cells already assembled. It is
+built once every selector's `summary.txt` is done.
+
 `data/` holds intermediates and is mostly cleaned up automatically once
 nothing downstream needs it. These persist deliberately:
 `data/dorado_basecall/<sample>.bam` (basecalling is expensive to redo) and,
 if a sample sets `organelle: true`, `data/getorganelle/<sample>/Mitochondria`
 (the only copy of that result). With the phylogeny on,
 `data/phylogeny/` is kept too, so the ~100 GB NCBI download and the
-reference genomes' UFCG profiles are only made once.
+reference genomes' UFCG profiles are only made once. The report's
+inputs, `data/report/<sample>/` (one length/quality line per read, about
+10 bytes per read gzipped, plus the grid's BUSCO lines), are kept so the
+report can be redrawn.
 
 ## Repo layout
 - `Snakefile` -- entry-point handling, input resolvers, adaptive resource
@@ -534,6 +572,9 @@ reference genomes' UFCG profiles are only made once.
   see "Containers" above for what actually runs each tool.
 - `workflow/scripts/summarize.py` -- builds
   `results/<sample>/<selector>/summary.txt`.
+- `workflow/scripts/make_report.py` (+ `report_template.html`) -- builds
+  `results/<sample>/report.html`: the script collects the numbers, the
+  template's JavaScript draws the charts (see "The report").
 - `workflow/scripts/drop_duplex_parents.sh` -- copies a FASTQ sample's
   reads without the simplex parents of duplex reads (see "Duplex data").
 - `workflow/scripts/download_sra.sh` -- downloads an sra sample's reads

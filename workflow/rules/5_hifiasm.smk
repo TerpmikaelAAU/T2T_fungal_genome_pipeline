@@ -36,6 +36,10 @@ rule hifiasm:
         ul_flag    = lambda w, input: f"--ul {input.b}" if wants_ultralong(w.input) else "",
         min_bytes  = int(config.get("hifiasm_min_input_mb", 1)) * 1_000_000,
         prefix     = lambda w: f"data/hifiasm/{w.input}_q{w.minq}_l{w.minlen}/prefix",
+    # hifiasm's progress, including the k-mer histogram the per-sample
+    # report draws (9_2_report.smk).
+    log:
+        "logs/hifiasm/{input}_q{minq}_l{minlen}.log"
     container:
         "docker://quay.io/biocontainers/hifiasm:0.25.0--h5ca1c30_0"
     conda:
@@ -52,11 +56,11 @@ rule hifiasm:
             # same crash at escalating cost. Write empty placeholders
             # instead so contig_count's own filter (count > 0) skips this
             # cell rather than retrying it.
-            echo "WARNING: {input.a} is ${{size}} bytes (< {params.min_bytes}); skipping hifiasm, writing empty placeholders" >&2
+            echo "WARNING: {input.a} is ${{size}} bytes (< {params.min_bytes}); skipping hifiasm, writing empty placeholders" > {log}
             : > {output.a}
             for f in {output.b}; do : > "$f"; done
         else
-            hifiasm --ont -t {threads} --primary {params.ul_flag} -o "{params.prefix}" {input.a}
+            hifiasm --ont -t {threads} --primary {params.ul_flag} -o "{params.prefix}" {input.a} 2> {log}
             # hifiasm's overlap/index caches (prefix.*.bin) aren't declared
             # Snakemake outputs, so temp() can't clean them -- and they're
             # large (100s of GB per grid cell). Nothing downstream reads

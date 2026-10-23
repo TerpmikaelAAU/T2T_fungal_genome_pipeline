@@ -1,6 +1,8 @@
+import glob
 import gzip
 import os
 import re
+from types import SimpleNamespace
 from snakemake.logging import logger
 from snakemake.utils import min_version
 
@@ -99,6 +101,9 @@ TELO_RERUN = TELOMERE_ON and bool(TELO.get("rerun_hifiasm", True))
 # assembly, see 8_contamination_tiara.smk.
 CONTAM = config.get("contamination", {})
 CONTAMINATION_ON = bool(CONTAM.get("enabled", False))
+
+# Per-sample HTML report (config `report:`), see 9_2_report.smk.
+REPORT_ON = bool(config.get("report", {}).get("enabled", True))
 
 # Independent ways to pick a winner across a sample's (min_q, min_len)
 # grid: fewest contigs (contig_count, 6_00), highest BUSCO completeness
@@ -468,6 +473,7 @@ include: "workflow/rules/7_getorganelle.smk"
 include: "workflow/rules/8_contamination_tiara.smk"
 include: "workflow/rules/9_stats.smk"
 include: "workflow/rules/9_1_telomere_report.smk"
+include: "workflow/rules/9_2_report.smk"
 include: "workflow/rules/10_phylogeny.smk"
 include: "workflow/rules/11_annotation_bags.smk"
 
@@ -488,6 +494,30 @@ def wants_phylogeny():
     download just to place fake assemblies."""
     return (bool(config.get("phylogeny", {}).get("enabled", False))
             and not only_example_data())
+
+def wants_report(name):
+    """results/{name}/report.html is built for new runs only. Its read and
+    grid-BUSCO tallies read temp() files (9_2_report.smk); on a run that
+    has deleted them, asking for the report would rebuild them, and that
+    can mean re-running hifiasm for every grid cell. So: keep a report that
+    exists; make one for a sample that hasn't started (no results/ folder,
+    no hifiasm run yet), or whose temp inputs are kept or still to come."""
+    if not REPORT_ON:
+        return False
+    if os.path.exists(f"results/{name}/report.html"):
+        return True
+    if not os.path.isdir(f"results/{name}") and not glob.glob(f"data/hifiasm/{name}_q[0-9]*"):
+        return True
+    w = SimpleNamespace(input=name)
+    reads = [(f"data/report/{name}/reads.tsv.gz", get_trimmed_fastq(w))]
+    if wants_dorado_correct(name):
+        reads.append((f"data/report/{name}/corrected.tsv.gz", report_corrected_reads(w)))
+    reads_ok = all(os.path.exists(kept) or os.path.exists(temp_) for kept, temp_ in reads)
+    # The grid's BUSCO folders are deleted once highest_busco has picked.
+    busco_ok = (os.path.exists(f"data/report/{name}/busco_grid.tsv")
+                or not os.path.exists(f"logs/select/{name}_highest_busco.log")
+                or all(os.path.isdir(d) for d in busco_grid_candidates(w)))
+    return reads_ok and busco_ok
 
 def final_targets():
     t = []
@@ -510,6 +540,8 @@ def final_targets():
                 t.append(f"results/{n}/{sel}/contamination/tiara.tsv")
         if wants_organelle(n):
             t.append(f"data/getorganelle/{n}/Mitochondria")
+        if wants_report(n):
+            t.append(f"results/{n}/report.html")
     if wants_phylogeny():
         t.append("results/phylogeny/genus_tree.nwk")
     if config.get("bags", {}).get("enabled", False):
