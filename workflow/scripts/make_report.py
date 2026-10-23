@@ -60,11 +60,18 @@ def read_table(path):
     held in memory: a run can have tens of millions of reads."""
     if not path:
         return
+    n = 0
     with gzip.open(path, "rt") as fh:
         for line in fh:
-            f = line.split("\t")
-            if f[0].strip():
-                yield int(f[0]), (float(f[1]) if len(f) > 1 and f[1].strip() else 0.0)
+            if not line.strip():
+                continue
+            # A malformed line (e.g. seqkit's columns changing) stops the job
+            # here rather than drawing empty charts.
+            f = line.rstrip("\n").split("\t")
+            yield int(f[0]), (float(f[1]) if len(f) > 1 else 0.0)
+            n += 1
+    if not n:
+        raise SystemExit(f"{path} lists no reads")
 
 
 def bin_index(edges, value):

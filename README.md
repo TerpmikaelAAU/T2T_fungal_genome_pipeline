@@ -166,6 +166,7 @@ Duplex data (`dorado duplex`) needs no extra key; see "Duplex data" below.
 | `telomere.*` | see "Telomeres" | |
 | `contamination.enabled` | `true` | Tiara screen; see "Contamination screen". |
 | `contamination.min_len` | `3000` | Tiara doesn't classify contigs shorter than this. |
+| `report.enabled` | `true` | Per-sample HTML report, new runs only; see "The report". |
 | `phylogeny.enabled` | `false` | Genus-level tree; see "Phylogeny". |
 | `phylogeny.taxon` | `"Fungi"` | Any NCBI taxon name or taxid, e.g. `Ascomycota`, `Eurotiomycetes`. Changing it means deleting `data/phylogeny/`. |
 | `bags.enabled` | `false` | Annotation; see "Annotation (BAGS)". |
@@ -479,7 +480,7 @@ with `--notemp` to keep everything while debugging.
 
 ```
 results/<sample>/
-  report.html                         # charts of the reads, grid, k-mer spectra, BUSCO and picks -- open in a browser (see "The report")
+  report.html                         # report: enabled -- charts of the reads, grid, k-mer spectra, BUSCO and picks; open in a browser (see "The report")
   read_stats.tsv                      # seqkit stats for the raw (and trimmed) reads, dorado correct's input and output (when on), and what hifiasm got per grid cell
   polish_groups.tsv                   # polished samples only: which selectors picked the same assembly (polished once)
 
@@ -538,16 +539,16 @@ don't assemble genomes every day. It shows:
 Hover over any chart for the numbers. The page follows the browser's light
 or dark setting.
 
-It is built for **new runs only**. It needs the reads going into the
-filter grid and the grid's BUSCO results, and both are `temp()` files
-that a finished run has already deleted; asking for the report there would
-rebuild them, which can mean re-running hifiasm for every grid cell. So a
-sample gets a report when it hasn't started yet (no `results/<sample>/`
-and no hifiasm run), or when those files are still there or still to
-come. Samples assembled before this report existed have no
-`logs/hifiasm/` logs, so a report made for them mid-run shows "no
-histogram" for the cells already assembled. It is built once every
-selector's `summary.txt` is done.
+It is on by default (`report: enabled: true`) and built for **new runs
+only**. It needs the reads going into the filter grid and the grid's BUSCO
+results, and both are `temp()` files that a finished run has already
+deleted; asking for the report there would rebuild them, which can mean
+re-running hifiasm for every grid cell. So a sample gets a report when it
+hasn't started yet (no `results/<sample>/` and no hifiasm run), or when
+those files are still there or still to come. Samples assembled before
+this report existed have no `logs/hifiasm/` logs, so a report made for
+them mid-run shows "no histogram" for the cells already assembled. It is
+built once every selector's `summary.txt` is done.
 
 `data/` holds intermediates and is mostly cleaned up automatically once
 nothing downstream needs it. These persist deliberately:

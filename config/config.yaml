@@ -75,6 +75,9 @@ contamination:
   enabled: true
   min_len: 3000
 
+report:
+  enabled: true
+
 phylogeny:
   enabled: false
   taxon: "Fungi"

@@ -5,7 +5,8 @@
 # each read filter kept, hifiasm's k-mer histogram per grid cell, BUSCO per
 # grid assembly and for the finals, and which cell each selector picked
 # (make_report.py fills report_template.html; the charts draw in the
-# browser, so the page is one self-contained file).
+# browser, so the page is one self-contained file). On unless config
+# `report: enabled: false`.
 #
 # Like 9_stats.smk, report_reads and report_busco_grid CONSUME temp()
 # intermediates (the reads going into filtering, the grid's BUSCO folders),
@@ -21,7 +22,7 @@ def report_corrected_reads(wildcards):
 # Length and mean quality of every read going into the filter grid, so the
 # page can redraw what any (min_q, min_len) cutoff keeps. Mean Q is
 # computed the way chopper computes it (from the mean error probability).
-# ~15 bytes per read gzipped. One thread: fx2tab -j only parallelises
+# About 10 bytes per read gzipped. One thread: fx2tab -j only parallelises
 # across files.
 rule report_reads:
     input:
