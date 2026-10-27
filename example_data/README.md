@@ -1,9 +1,11 @@
 # Example data
 
-Tiny, synthetic files for testing that the pipeline runs end-to-end --
-random sequence, not a real organism. Useful for checking your setup
-(containers pull, jobs schedule, rules connect) before pointing the
-pipeline at real data. Don't expect a real assembly from these.
+Tiny, synthetic files -- random sequence, not a real organism -- for
+checking your setup (containers pull, jobs schedule, rules connect) before
+pointing the pipeline at real data. The run does not finish: every grid
+assembly is empty, so the selectors stop with "every grid point produced an
+empty assembly", and sample_c's basecalling and sample_d's porechop_abi fail
+on the fake reads.
 
 | File                      | Entry point | Notes                          |
 |---------------------------|-------------|---------------------------------|
