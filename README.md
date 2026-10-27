@@ -44,8 +44,8 @@ is downloaded on first use, so there is nothing else to install.
 `config/config.yaml` ships pointing at `example_data/`: tiny fake reads for
 trying the scheduling and containers before a real run (see
 `example_data/README.md`). They are too few to assemble, so the run stops
-at the selectors (`contig_count`, `highest_busco`, `most_t2t`) with "no
-valid/non-empty assembly" errors.
+at the selectors (`contig_count`, `highest_busco`, `most_t2t`) with "No valid
+..." / "No non-empty assembly" errors.
 
 ## Configuring a run
 All settings are in `config/config.yaml`. Each entry under `samples:` is one
@@ -94,9 +94,9 @@ fails on paths that only exist on the cluster.
 | `ultralong.enabled` | `true` | Default for each sample's `ultralong`. |
 | `ultralong.min_q`, `min_len` | `10`, `50000` | Cutoff for the `--ul` reads. Check there is coverage above it: one large dataset had only ~3.5x above 20 kb. |
 | `hifiasm_min_input_mb` | `1` | Cells with less read data skip hifiasm and get an empty placeholder, because hifiasm crashes with an illegal instruction on a near-empty FASTQ (and retrying with more memory only repeats the crash). |
-| `min_assembly_mb` | `10` | Assemblies smaller than this are never picked and get no BUSCO run. Keep it well below the expected genome size; `0` turns it off. |
+| `min_assembly_mb` | `10` | Assemblies smaller than this are never picked and get no BUSCO run (BUSCO can crash on a gene-less assembly). Keep it well below the expected genome size; `0` turns it off. |
 | `prefilter.enabled`, `min_q`, `min_len` | `true`, `10`, `10000` | Filter the full read set once and let every stricter cutoff read that smaller file. Same reads per cell either way; best set to the grid's loosest cell. |
-| `filter.min_q`, `min_len` | `[10, 15, 20]`, `[10000, ..., 30000]` | The default grid. |
+| `filter.min_q`, `min_len` | `[10, 15, 20]`, `[10000, 15000, 20000, 25000, 30000]` | The default grid. |
 | `telomere.enabled` | `true` | Telomere motif, report and the `most_t2t` selector; see "Telomeres". Off if the `telomere:` block is missing. |
 | `telomere.top_motifs` | `10` | Candidate motifs from `tidk explore` tried with `tidk search`. |
 | `telomere.explore_min_len`, `explore_max_len` | `5`, `12` | Repeat unit lengths (bp) `tidk explore` tries. |
@@ -143,7 +143,7 @@ dorado's more accurate polishing model.
 simplex parents of duplex reads are dropped before assembly, so each
 molecule counts once (by `dx:i:-1` in a BAM, by the `<id1>;<id2>` read name
 in a FASTQ, so the names must be dorado's own). `dorado polish` rejects
-duplex reads, so polishing gets the simplex reads only.
+duplex reads, so polishing gets all simplex reads, the parents included.
 
 ### The grid
 `chopper` filters the reads at every `(min_q, min_len)` in `filter:` and
@@ -161,9 +161,10 @@ The selectors:
 
 Every winner is BUSCO'd and reported on its own under
 `results/<sample>/<selector>/` (an assembly picked by several selectors is
-polished once). Neither is automatically better; compare
+polished once). None is automatically better; compare
 their `summary.txt`. If no cell reaches `min_assembly_mb`, the selectors fall
-back to every non-empty cell and say so in `logs/select/`.
+back to every non-empty cell and say so in their logs (`logs/select/`,
+`logs/telomere/` for `most_t2t`).
 
 **`dorado_correct`** is off by default because `hifiasm --ont` corrects ONT
 reads itself, and on a ~5 kb N50 dataset dorado correct discarded ~85% of
@@ -250,7 +251,7 @@ drawback).
 results/<sample>/
   report.html                       # charts of reads, grid, k-mer spectra, BUSCO and picks
   read_stats.tsv                    # reads at each stage and per grid cell
-  polish_groups.tsv                 # selectors that picked the same assembly (polished once)
+  polish_groups.tsv                 # polished samples: selectors that picked the same assembly
   telomere_motif_candidates.tsv
   <selector>/                       # lowest_contig, highest_busco, most_t2t
     summary.txt                     # reads, grid, coverage, BUSCO, telomeres, contamination
