@@ -3,9 +3,10 @@
 Tiny, synthetic files -- random sequence, not a real organism -- for
 checking your setup (containers pull, jobs schedule, rules connect) before
 pointing the pipeline at real data. The run does not finish: every grid
-assembly is empty, so the selectors stop with "every grid point produced an
-empty assembly", and sample_c's basecalling and sample_d's porechop_abi fail
-on the fake reads.
+assembly is empty, so the selectors stop with "no valid/non-empty assembly"
+errors. Basecalling `sample_d_pod5` and porechop_abi on `sample_c.bam` also
+fail on the fake reads. (The config names are crossed: config sample `sample_c`
+is the pod5, `sample_d` the BAM.)
 
 | File                      | Entry point | Notes                          |
 |---------------------------|-------------|---------------------------------|

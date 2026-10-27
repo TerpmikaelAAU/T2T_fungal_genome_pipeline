@@ -43,8 +43,9 @@ is downloaded on first use, so there is nothing else to install.
 
 `config/config.yaml` ships pointing at `example_data/`: tiny fake reads for
 trying the scheduling and containers before a real run (see
-`example_data/README.md`). They are too few to assemble, so expect the
-selectors to fail with "every grid point produced an empty assembly".
+`example_data/README.md`). They are too few to assemble, so the run stops
+at the selectors (`contig_count`, `highest_busco`, `most_t2t`) with "no
+valid/non-empty assembly" errors.
 
 ## Configuring a run
 All settings are in `config/config.yaml`. Each entry under `samples:` is one
@@ -68,7 +69,7 @@ fails on paths that only exist on the cluster.
 | Key | Default | What it does |
 |---|---|---|
 | `type` | required | `pod5`, `bam`, `fastq` or `sra`; see "Entry points". |
-| `path` | required, except for `sra` | A directory of `.pod5` files, ONE basecalled `.bam` (merge several with `samtools merge`), or one `.fastq`/`.fastq.gz`. |
+| `path` | required, except for `sra` | A directory of `.pod5` files, ONE basecalled `.bam` (merge several with `samtools merge`), or one `.fastq`/`.fastq.gz`. Absolute, or relative to the repo root. |
 | `accession` | required for `sra` | A run accession (`SRR`/`ERR`/`DRR`), or a list when one sample spans several runs. |
 | `busco_lineage` | `fungi_odb12` | BUSCO dataset. Match it to the organism (e.g. `stramenopiles_odb12` for an oomycete). Don't compare scores across odb versions. |
 | `min_assembly_mb` | global | Smallest grid assembly worth picking. |
@@ -88,18 +89,28 @@ fails on paths that only exist on the cluster.
 | `dorado_correct.enabled` | `false` | Default for each sample's `dorado_correct`. |
 | `dorado_correct.min_q`, `min_len` | `10`, `10000` | The one cutoff applied to reads going into dorado correct. |
 | `dorado_correct.index_size` | `"4G"` | Smaller means less RAM per block but more blocks. |
+| `dorado_correct.max_blocks` | `200` (not in the shipped config) | Stop if dorado reports more blocks than this, e.g. after a typo like `index_size: "4"`. |
 | `dorado_correct.inference_device` | `"cuda:all"` | `"cpu"` keeps inference off the GPU (overlap is always CPU). |
 | `ultralong.enabled` | `true` | Default for each sample's `ultralong`. |
 | `ultralong.min_q`, `min_len` | `10`, `50000` | Cutoff for the `--ul` reads. Check there is coverage above it: one large dataset had only ~3.5x above 20 kb. |
 | `hifiasm_min_input_mb` | `1` | Cells with less read data skip hifiasm and get an empty placeholder, because hifiasm crashes with an illegal instruction on a near-empty FASTQ (and retrying with more memory only repeats the crash). |
-| `min_assembly_mb` | `10` | Assemblies smaller than this are never picked and get no BUSCO run; `0` turns it off. |
+| `min_assembly_mb` | `10` | Assemblies smaller than this are never picked and get no BUSCO run. Keep it well below the expected genome size; `0` turns it off. |
 | `prefilter.enabled`, `min_q`, `min_len` | `true`, `10`, `10000` | Filter the full read set once and let every stricter cutoff read that smaller file. Same reads per cell either way; best set to the grid's loosest cell. |
 | `filter.min_q`, `min_len` | `[10, 15, 20]`, `[10000, ..., 30000]` | The default grid. |
-| `telomere.*` | | See "Telomeres". |
-| `contamination.enabled`, `min_len` | `true`, `3000` | Tiara screen; contigs shorter than `min_len` aren't classified. |
+| `telomere.enabled` | `true` | Telomere motif, report and the `most_t2t` selector; see "Telomeres". Off if the `telomere:` block is missing. |
+| `telomere.top_motifs` | `10` | Candidate motifs from `tidk explore` tried with `tidk search`. |
+| `telomere.explore_min_len`, `explore_max_len` | `5`, `12` | Repeat unit lengths (bp) `tidk explore` tries. |
+| `telomere.explore_threshold` | `10` | Units in a row that count as a repeat run. tidk's default of 100 misses short fungal telomeres. |
+| `telomere.window`, `min_repeats` | `2000`, `10` | An end is telomeric with at least `min_repeats` motif copies in its last `window` bp. |
+| `telomere.rerun_hifiasm` | `true` | Re-assemble every cell with `hifiasm --telo-m <motif>` when the motif is clear (below). Doubles the hifiasm cost. |
+| `telomere.rerun_min_fraction`, `rerun_min_ends` | `0.8`, `4` | The motif is clear when it covers at least this fraction of all telomeric ends found and at least this many ends. |
+| `telomere.fallback_motif` | `TTAGGG` | Used for the counts when no candidate finds a telomere; hifiasm isn't re-run then. |
+| `contamination.enabled`, `min_len` | `true`, `3000` | Tiara screen; contigs shorter than `min_len` aren't classified. Off if the `contamination:` block is missing. |
 | `report.enabled` | `true` | Per-sample HTML report, new runs only; see "The report". |
-| `phylogeny.enabled`, `taxon` | `false`, `"Fungi"` | Genus-level tree; see "Phylogeny". Changing `taxon` means deleting `data/phylogeny/`. |
-| `bags.enabled`, `geneml_version` | `false`, `"1.1.0"` | Annotation; see "Annotation". |
+| `phylogeny.enabled` | `false` | Genus-level tree; see "Phylogeny". |
+| `phylogeny.taxon` | `"Fungi"` | Any NCBI taxon name or taxid, e.g. `Ascomycota`. Changing it means deleting `data/phylogeny/`. |
+| `bags.enabled` | `false` | Annotation; see "Annotation". |
+| `bags.geneml_version` | `"1.1.0"` | geneML version installed from PyPI. |
 
 ### Entry points
 | `type:` | Runs |
@@ -141,15 +152,16 @@ of editing the global one: changing the global grid changes what every other
 sample's selectors expect, including cells they never ran.
 
 The selectors:
-- `contig_count` (fewest contigs). For a repeat-rich genome, fewer contigs
+- `lowest_contig` (fewest contigs). For a repeat-rich genome, fewer contigs
   can mean collapsed repeats; check the total length against the expected
   genome size.
 - `highest_busco` runs BUSCO on every cell, one run per cell on top of the
   final BUSCO runs.
 - `most_t2t` (with telomeres on); see "Telomeres".
 
-Every winner is polished, BUSCO'd and reported on its own under
-`results/<sample>/<selector>/`. Neither is automatically better; compare
+Every winner is BUSCO'd and reported on its own under
+`results/<sample>/<selector>/` (an assembly picked by several selectors is
+polished once). Neither is automatically better; compare
 their `summary.txt`. If no cell reaches `min_assembly_mb`, the selectors fall
 back to every non-empty cell and say so in `logs/select/`.
 
@@ -160,23 +172,17 @@ and only the grid's `min_len` values apply afterwards. Its output has no
 qualities, so it is padded with Q30: hifiasm drops reads below Q10.
 
 ## Telomeres
-On by default (`telomere.enabled`).
+On in the shipped config; the keys are in "Global settings".
 1. `tidk explore` lists candidate repeat units near contig ends of the
    fewest-contig first-pass assembly; each of the top `top_motifs` is tried
    with `tidk search`, and the one making most ends telomeric wins
    (`results/<sample>/telomere_motif_candidates.tsv`).
-2. If that motif covers at least `rerun_min_fraction` of the telomeric ends
-   found and at least `rerun_min_ends` ends, every cell is re-assembled with
-   `hifiasm --telo-m <motif>` and the selectors choose across both runs.
-   This doubles the hifiasm cost; `rerun_hifiasm: false` skips it.
+2. If the motif is clear (`rerun_min_fraction`, `rerun_min_ends`), every
+   cell is re-assembled with `hifiasm --telo-m <motif>` and the selectors
+   choose across both runs.
 3. `most_t2t` picks the cell with the most telomere-to-telomere contigs.
 4. Every final assembly gets `telomeres.tsv`, a tidk plot and a TELOMERES
    section in `summary.txt`.
-
-An end is telomeric with at least `min_repeats` motif copies in its last
-`window` bp. `explore_threshold` is 10 because tidk's default of 100 misses
-short fungal telomeres. With no telomere found, `fallback_motif` (TTAGGG) is
-used for the counts and hifiasm isn't re-run.
 
 ## Contamination screen
 Tiara labels each contig of every final assembly as eukarya, bacteria,
@@ -222,16 +228,15 @@ reference only.
 not part of the workflow.
 
 ## Running
-Either inside one small SLURM job:
-```
-sbatch slurm_submit.sbatch
-```
-or on the login node inside `tmux` (recommended, see "Cluster notes"):
+On the login node inside `tmux`:
 ```
 tmux new -s my_run
 conda activate snakemake_run
 snakemake --profile profile
 ```
+or as one small SLURM job with `sbatch slurm_submit.sbatch` (edit the conda
+env name and `--mail-user` in it first; see "Cluster notes" for the
+drawback).
 - Dry-run first with `-n`, especially after pulling changes into a running
   project: most intermediates are `temp()`, and a new consumer of one can
   rebuild it, which can mean re-running hifiasm for every cell.
@@ -272,7 +277,8 @@ a scoreboard of all cells with each selector's pick.
 It is built for **new runs only**. It needs the grid's input reads and
 BUSCO results, which are `temp()`; asking for it on a finished run would
 rebuild them, hifiasm included. So a sample gets a report when it hasn't
-started, or while those files still exist or are still to come. Cells
+started, or while those files still exist or are still to come; an
+existing `report.html` always stays a target. Cells
 assembled before `logs/hifiasm/` existed show "no histogram".
 
 ## Cluster notes (AAU BioCloud)
@@ -287,8 +293,9 @@ assembled before `logs/hifiasm/` existed show "no histogram".
 - The SLURM account guess fails (`sacct: invalid option -- '1'`) harmlessly.
   If jobs get rejected over the account, set `slurm_account` under
   `default-resources` in `profile/config.yaml`.
-- Run Snakemake itself on the login node, not in a SLURM job: it only submits
-  and polls, and inside a job it warns and can look hung.
+- Snakemake warns when it runs inside a SLURM job (`slurm_submit.sbatch`).
+  It only submits and polls, so the login node is enough, and inside a job it
+  can look hung.
 
 ## Known gotchas
 - Deleting a sample's raw data after `results/` are final makes later runs
