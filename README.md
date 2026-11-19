@@ -228,7 +228,8 @@ Tiara (installed into plain Python images, above). `workflow/envs/*.yml` are
 reference only.
 
 `scripts/` holds the standalone scripts behind the paper's figures; they are
-not part of the workflow.
+not part of the workflow. The paper's Funannotate results were removed from
+main; get them from release v1.0.0 (`scripts/Funannotate/Anotation_results/`).
 
 ## Running
 On the login node inside `tmux`:
