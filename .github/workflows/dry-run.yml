@@ -20,7 +20,7 @@ jobs:
 
       - name: Install Snakemake
         # Same version as Snakemake_env.yml
-        run: pip install snakemake==9.26.1
+        run: pip install snakemake==9.27.2
 
       - name: Python scripts compile
         run: python -m py_compile workflow/scripts/*.py

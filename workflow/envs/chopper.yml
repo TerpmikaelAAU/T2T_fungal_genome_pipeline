@@ -3,4 +3,4 @@ channels:
   - conda-forge
   - bioconda
 dependencies:
-  - chopper=0.13.0
+  - chopper=0.15.0

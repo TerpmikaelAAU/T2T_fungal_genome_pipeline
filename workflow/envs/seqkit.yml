@@ -3,4 +3,4 @@ channels:
   - conda-forge
   - bioconda
 dependencies:
-  - seqkit=2.13.0
+  - seqkit=2.14.0

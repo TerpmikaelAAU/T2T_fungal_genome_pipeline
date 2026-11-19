@@ -3,5 +3,5 @@ channels:
   - conda-forge
   - bioconda
 dependencies:
-  - ncbi-datasets-cli=18.37.0
+  - ncbi-datasets-cli=18.39.0
   - unzip

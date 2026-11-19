@@ -19,7 +19,7 @@ rule bam_to_fastq:
     log:
         "logs/bam_to_fastq/{input}.log"
     container:
-        "docker://quay.io/biocontainers/samtools:1.24--h9dcdb79_1"
+        "docker://quay.io/biocontainers/samtools:1.25--h9dcdb79_0"
     conda:
         "../envs/samtools.yml"
     shell:

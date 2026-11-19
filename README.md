@@ -36,7 +36,7 @@ Each rule instance is its own SLURM job, submitted by Snakemake.
 conda env create -n snakemake_run -f Snakemake_env.yml
 conda activate snakemake_run
 ```
-This pins Snakemake 9.26.1 and the SLURM executor plugin; Snakemake 7/8
+This pins Snakemake 9.27.2 and the SLURM executor plugin; Snakemake 7/8
 won't work. Tools run in containers that are pulled on first use, and dorado
 is downloaded on first use, so there is nothing else to install.
 `profile/config.yaml` is set up for BioCloud.
@@ -110,7 +110,7 @@ fails on paths that only exist on the cluster.
 | `phylogeny.enabled` | `false` | Genus-level tree; see "Phylogeny". |
 | `phylogeny.taxon` | `"Fungi"` | Any NCBI taxon name or taxid, e.g. `Ascomycota`. Changing it means deleting `data/phylogeny/`. |
 | `bags.enabled` | `false` | Annotation; see "Annotation". |
-| `bags.geneml_version` | `"1.1.0"` | geneML version installed from PyPI. |
+| `bags.geneml_version` | `"1.5.0"` | geneML version installed from PyPI. |
 
 ### Entry points
 | `type:` | Runs |
@@ -250,6 +250,7 @@ drawback).
 ```
 results/<sample>/
   report.html                       # charts of reads, grid, k-mer spectra, BUSCO and picks
+  corrected_reads.fasta.gz          # dorado_correct samples: the corrected reads, before min_len
   read_stats.tsv                    # reads at each stage and per grid cell
   polish_groups.tsv                 # polished samples: selectors that picked the same assembly
   telomere_motif_candidates.tsv
@@ -279,7 +280,8 @@ It is built for **new runs only**. It needs the grid's input reads and
 BUSCO results, which are `temp()`; asking for it on a finished run would
 rebuild them, hifiasm included. So a sample gets a report when it hasn't
 started, or while those files still exist or are still to come; an
-existing `report.html` always stays a target. Cells
+existing `report.html` always stays a target. `corrected_reads.fasta.gz`
+follows the same rule, since its input is the temp corrected FASTA. Cells
 assembled before `logs/hifiasm/` existed show "no histogram".
 
 ## Cluster notes (AAU BioCloud)

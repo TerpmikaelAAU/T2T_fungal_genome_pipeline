@@ -3,4 +3,4 @@ channels:
   - conda-forge
   - bioconda
 dependencies:
-  - porechop_abi=0.5.0
+  - porechop_abi=0.5.1

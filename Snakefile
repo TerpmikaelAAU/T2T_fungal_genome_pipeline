@@ -408,7 +408,7 @@ resources = {
     "correct_merge":    {"mem_mb": 5000,   "runtime": 60},
     "tidk":             {"mem_mb": 2000,   "runtime": 120},  # peaked at ~420 MB (explore)
     # annotation, BAGS (11_annotation_bags.smk)
-    "geneml":           {"mem_mb": 30000,  "runtime": 360},
+    "geneml":           {"mem_mb": 48000,  "runtime": 360},
     "antismash":        {"mem_mb": 64000,  "runtime": 360},
     # phylogeny (0_4_ncbi_genus_representatives.smk, 10_phylogeny.smk)
     "ncbi_datasets":    {"mem_mb": 8000,   "runtime": 2880},  # a few thousand genomes, ~100 GB
@@ -519,6 +519,19 @@ def wants_report(name):
                 or all(os.path.isdir(d) for d in busco_grid_candidates(w)))
     return reads_ok and busco_ok
 
+def wants_corrected_reads(name):
+    """results/{name}/corrected_reads.fasta.gz, the dorado-corrected reads
+    every grid cell is cut from, kept for read-evidence plots. New runs
+    only, like wants_report(): its input data/dorado/{name}.fasta is
+    temp(), and asking for it once deleted would re-run dorado correct."""
+    if not wants_dorado_correct(name):
+        return False
+    return (os.path.exists(f"results/{name}/corrected_reads.fasta.gz")
+            or os.path.exists(f"data/dorado/{name}.fasta")
+            or (not os.path.isdir(f"results/{name}")
+                and not glob.glob(f"data/hifiasm/{name}_q[0-9]*")
+                and not os.path.exists(f"data/seqtk/fasta_to_fastq/{name}.fastq")))
+
 def final_targets():
     t = []
     for n in SAMPLES:
@@ -542,6 +555,8 @@ def final_targets():
             t.append(f"data/getorganelle/{n}/Mitochondria")
         if wants_report(n):
             t.append(f"results/{n}/report.html")
+        if wants_corrected_reads(n):
+            t.append(f"results/{n}/corrected_reads.fasta.gz")
     if wants_phylogeny():
         t.append("results/phylogeny/genus_tree.nwk")
     if config.get("bags", {}).get("enabled", False):
