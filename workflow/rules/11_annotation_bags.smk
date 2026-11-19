@@ -18,7 +18,7 @@
 # geneml runs from there in that same image. The antiSMASH databases are
 # likewise downloaded once into resources/.
 
-GENEML_VERSION = config.get("bags", {}).get("geneml_version", "1.1.0")
+GENEML_VERSION = config.get("bags", {}).get("geneml_version", "1.5.0")
 GENEML_ENV = f"resources/geneml-{GENEML_VERSION}"
 PYTHON_CONTAINER = "docker://python:3.12-slim"
 ANTISMASH_CONTAINER = "docker://quay.io/biocontainers/antismash:8.0.4--pyhdfd78af_1"
@@ -49,13 +49,16 @@ rule get_geneml:
 
 rule geneml:
     input:
-        geneml = f"{GENEML_ENV}/bin/geneml",
+        # ancient(): reinstalling the same version does not re-annotate.
+        # A geneml_version bump does (see README "Annotation").
+        geneml = ancient(f"{GENEML_ENV}/bin/geneml"),
         fa     = "results/{input}/{selector}/{input}_{selector}_final.fasta",
     output:
         gff      = "results/{input}/{selector}/annotation/{input}_{selector}.gff3",
         proteins = "results/{input}/{selector}/annotation/{input}_{selector}.faa",
+    # geneML >=1.4 splits --cores into worker processes of ~2.5 GB each.
     threads:
-        30
+        16
     resources:
         mem_mb  = resources["geneml"]["mem_mb"],
         runtime = resources["geneml"]["runtime"],
@@ -66,7 +69,7 @@ rule geneml:
     shell:
         """
         {input.geneml} {input.fa} --output {output.gff} --proteins {output.proteins} \
-            --cores {threads} --cpu-only > {log} 2>&1
+            --cores {threads} > {log} 2>&1
         """
 
 

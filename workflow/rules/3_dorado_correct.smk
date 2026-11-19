@@ -130,3 +130,25 @@ rule correct_merge:
         """
         cat {input} > {output.a}
         """
+
+# Keeps the corrected reads (gzipped, unfiltered) as a result; everything
+# else on this path is temp(). Asked for by final_targets() only via
+# wants_corrected_reads() in the Snakefile.
+rule keep_corrected_reads:
+    input:
+        a = "data/dorado/{input}.fasta"
+    output:
+        a = "results/{input}/corrected_reads.fasta.gz"
+    threads:
+        4
+    resources:
+        mem_mb = 2000,
+        runtime = 120,
+    container:
+        "docker://quay.io/biocontainers/seqkit:2.14.0--hb192632_0"
+    conda:
+        "../envs/seqkit.yml"
+    shell:
+        """
+        seqkit seq -w 0 -j {threads} {input.a} -o {output.a}
+        """

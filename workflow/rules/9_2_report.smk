@@ -35,7 +35,7 @@ rule report_reads:
         mem_mb = 2000,
         runtime = 120,
     container:
-        "docker://quay.io/biocontainers/seqkit:2.13.0--he881be0_0"
+        "docker://quay.io/biocontainers/seqkit:2.14.0--hb192632_0"
     conda:
         "../envs/seqkit.yml"
     shell:
@@ -57,7 +57,7 @@ rule report_corrected_reads:
         mem_mb = 2000,
         runtime = 120,
     container:
-        "docker://quay.io/biocontainers/seqkit:2.13.0--he881be0_0"
+        "docker://quay.io/biocontainers/seqkit:2.14.0--hb192632_0"
     conda:
         "../envs/seqkit.yml"
     shell:
