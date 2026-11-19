@@ -525,13 +525,14 @@ def wants_corrected_reads(name):
     temp(), and asking for it once deleted re-runs dorado correct and
     everything after it. So: new runs only -- the file is kept already,
     its input is still there, or this sample's dorado correct hasn't
-    finished (no corrected-read stats, no read_stats.tsv)."""
+    finished (no corrected FASTQ, corrected-read stats or read_stats.tsv)."""
     if not wants_dorado_correct(name):
         return False
     return (os.path.exists(f"results/{name}/corrected_reads.fasta.gz")
             or os.path.exists(f"data/dorado/{name}.fasta")
             or not (os.path.exists(f"data/read_stats/{name}_dorado_out.tsv")
-                    or os.path.exists(f"results/{name}/read_stats.tsv")))
+                    or os.path.exists(f"results/{name}/read_stats.tsv")
+                    or os.path.exists(f"data/seqtk/fasta_to_fastq/{name}.fastq")))
 
 def final_targets():
     t = []
