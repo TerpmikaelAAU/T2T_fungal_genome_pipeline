@@ -201,6 +201,8 @@ BUSCO in protein mode (how complete the annotation is). One row per
 assembly goes in `results/annotation_summary.tsv`. geneML is only on PyPI,
 so it is installed once into `resources/geneml-<version>/`; the antiSMASH
 databases are downloaded once into `resources/antismash_databases/`.
+Changing `bags.geneml_version` re-annotates every assembly (geneML,
+antiSMASH, BUSCO) in the next run with bags on.
 
 ## Phylogeny
 `phylogeny.enabled: true` builds one [UFCG](https://ufcg.steineggerlab.com)
@@ -250,7 +252,7 @@ drawback).
 ```
 results/<sample>/
   report.html                       # charts of reads, grid, k-mer spectra, BUSCO and picks
-  corrected_reads.fasta.gz          # dorado_correct samples: the corrected reads, before min_len
+  corrected_reads.fasta.gz          # dorado_correct samples: the corrected reads, before min_len (*)
   read_stats.tsv                    # reads at each stage and per grid cell
   polish_groups.tsv                 # polished samples: selectors that picked the same assembly
   telomere_motif_candidates.tsv
@@ -266,6 +268,9 @@ results/phylogeny/                  # genus_tree.nwk, alignment, tip_labels.tsv
 logs/                               # per rule and sample; logs/hifiasm/ has hifiasm's own output
 ```
 
+(*) Only made when dorado correct runs anyway, since its input is `temp()`.
+After a forced rerun (`-R`), name it as a target to keep it.
+
 Most of `data/` is deleted once nothing needs it. Kept on purpose:
 `data/dorado_basecall/` (basecalling is expensive), `data/getorganelle/`
 (the only copy), `data/sra/`, `data/phylogeny/`, and `data/report/` (about
@@ -280,8 +285,7 @@ It is built for **new runs only**. It needs the grid's input reads and
 BUSCO results, which are `temp()`; asking for it on a finished run would
 rebuild them, hifiasm included. So a sample gets a report when it hasn't
 started, or while those files still exist or are still to come; an
-existing `report.html` always stays a target. `corrected_reads.fasta.gz`
-follows the same rule, since its input is the temp corrected FASTA. Cells
+existing `report.html` always stays a target. Cells
 assembled before `logs/hifiasm/` existed show "no histogram".
 
 ## Cluster notes (AAU BioCloud)

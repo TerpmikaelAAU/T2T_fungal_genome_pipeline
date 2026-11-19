@@ -22,9 +22,9 @@
 # COST: a qualifying motif re-runs hifiasm for every grid cell (the pass-1
 # overlap caches are deleted to save disk, so it's a full run each).
 
-# Held at 0.2.7: tidk 0.3 renamed explore's columns (pick_telomere_motif.py
-# reads them by position), made explore error-tolerant by default, and its
-# counts are not comparable with earlier versions.
+# Held at 0.2.7: tidk 0.3 changed explore's columns (telomere_explore reads
+# them by position), made explore error-tolerant by default, and its counts
+# are not comparable with earlier versions.
 TIDK_CONTAINER = "docker://quay.io/biocontainers/tidk:0.2.7--h6872113_0"
 
 def telomere_explore_candidates(wildcards):

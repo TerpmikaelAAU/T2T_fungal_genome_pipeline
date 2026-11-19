@@ -49,8 +49,8 @@ rule get_geneml:
 
 rule geneml:
     input:
-        # ancient(): a geneml_version bump installs the new version but
-        # does not re-annotate assemblies that already have genes.
+        # ancient(): reinstalling the same version does not re-annotate.
+        # A geneml_version bump does (see README "Annotation").
         geneml = ancient(f"{GENEML_ENV}/bin/geneml"),
         fa     = "results/{input}/{selector}/{input}_{selector}_final.fasta",
     output:

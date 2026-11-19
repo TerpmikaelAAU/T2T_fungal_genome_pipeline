@@ -521,16 +521,16 @@ def wants_report(name):
 
 def wants_corrected_reads(name):
     """results/{name}/corrected_reads.fasta.gz, the dorado-corrected reads
-    every grid cell is cut from, kept for read-evidence plots. New runs
-    only, like wants_report(): its input data/dorado/{name}.fasta is
-    temp(), and asking for it once deleted would re-run dorado correct."""
+    every grid cell is cut from. Its input data/dorado/{name}.fasta is
+    temp(), so only ask for it when that costs nothing extra: the file is
+    kept already, its input is still there, or dorado correct runs anyway
+    because the corrected-read stats (kept, needed by read_stats.tsv) are
+    missing."""
     if not wants_dorado_correct(name):
         return False
     return (os.path.exists(f"results/{name}/corrected_reads.fasta.gz")
             or os.path.exists(f"data/dorado/{name}.fasta")
-            or (not os.path.isdir(f"results/{name}")
-                and not glob.glob(f"data/hifiasm/{name}_q[0-9]*")
-                and not os.path.exists(f"data/seqtk/fasta_to_fastq/{name}.fastq")))
+            or not os.path.exists(f"data/read_stats/{name}_dorado_out.tsv"))
 
 def final_targets():
     t = []
