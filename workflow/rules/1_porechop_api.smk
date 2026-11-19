@@ -23,7 +23,7 @@ rule porechop_abi:
         mem_mb=scaled_mem(2.5, 32000),
         runtime=scaled_time(0.05, 600),
     container:
-        "docker://quay.io/biocontainers/porechop_abi:0.5.0--py312h5e9d817_5"
+        "docker://quay.io/biocontainers/porechop_abi:0.5.1--py312h5e9d817_0"
     conda:
         "../envs/porechop_abi.yml"
     shell:

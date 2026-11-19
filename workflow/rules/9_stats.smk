@@ -58,7 +58,7 @@ rule filtered_read_stats:
         mem_mb = scaled_mem(0, 4000),
         runtime = 120,
     container:
-        "docker://quay.io/biocontainers/seqkit:2.13.0--he881be0_0"
+        "docker://quay.io/biocontainers/seqkit:2.14.0--hb192632_0"
     conda:
         "../envs/seqkit.yml"
     shell:
@@ -83,7 +83,7 @@ rule dorado_read_stats:
         mem_mb = scaled_mem(0, 4000),
         runtime = 120,
     container:
-        "docker://quay.io/biocontainers/seqkit:2.13.0--he881be0_0"
+        "docker://quay.io/biocontainers/seqkit:2.14.0--hb192632_0"
     conda:
         "../envs/seqkit.yml"
     shell:
@@ -105,7 +105,7 @@ rule read_stats:
         mem_mb = scaled_mem(0, 4000),
         runtime = 120,
     container:
-        "docker://quay.io/biocontainers/seqkit:2.13.0--he881be0_0"
+        "docker://quay.io/biocontainers/seqkit:2.14.0--hb192632_0"
     conda:
         "../envs/seqkit.yml"
     shell:
@@ -130,7 +130,7 @@ rule assembly_stats:
         mem_mb = 2000,
         runtime = 120,
     container:
-        "docker://quay.io/biocontainers/seqkit:2.13.0--he881be0_0"
+        "docker://quay.io/biocontainers/seqkit:2.14.0--hb192632_0"
     conda:
         "../envs/seqkit.yml"
     shell:

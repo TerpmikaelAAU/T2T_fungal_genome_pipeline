@@ -17,7 +17,7 @@ locally:
 - CI (`.github/workflows/dry-run.yml`): `py_compile` on `workflow/scripts/*.py`,
   then `snakemake -n` on the default config, with every optional feature on,
   and with every feature off. Run the same steps locally with Snakemake
-  9.26.1 in a `uv venv` before pushing.
+  9.27.2 in a `uv venv` before pushing.
 - CI never executes a script. To test one, e.g. `summarize.py`, `exec` it
   with a stub `snakemake` object (`input`, `params`, `output` as dicts with
   attribute access) against real output files the user provides.

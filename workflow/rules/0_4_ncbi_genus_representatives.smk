@@ -45,7 +45,7 @@ rule ncbi_genome_summary:
     log:
         "logs/phylogeny/ncbi_genome_summary.log"
     container:
-        "docker://staphb/ncbi-datasets:18.37.0"
+        "docker://staphb/ncbi-datasets:18.39.0"
     conda:
         "../envs/ncbi_datasets.yml"
     shell:
@@ -106,7 +106,7 @@ checkpoint download_genus_representatives:
     log:
         "logs/phylogeny/download_genus_representatives.log"
     container:
-        "docker://staphb/ncbi-datasets:18.37.0"
+        "docker://staphb/ncbi-datasets:18.39.0"
     conda:
         "../envs/ncbi_datasets.yml"
     shell:

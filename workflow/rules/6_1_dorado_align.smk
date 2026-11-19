@@ -46,7 +46,7 @@ rule dorado_align:
         mem_mb=scaled_mem(1.0, 64000),
         runtime=resources["dorado_align"]["runtime"],
     container:
-        "docker://quay.io/biocontainers/samtools:1.24--h9dcdb79_1"
+        "docker://quay.io/biocontainers/samtools:1.25--h9dcdb79_0"
     conda:
         "../envs/samtools.yml"
     log:

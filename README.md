@@ -36,7 +36,7 @@ Each rule instance is its own SLURM job, submitted by Snakemake.
 conda env create -n snakemake_run -f Snakemake_env.yml
 conda activate snakemake_run
 ```
-This pins Snakemake 9.26.1 and the SLURM executor plugin; Snakemake 7/8
+This pins Snakemake 9.27.2 and the SLURM executor plugin; Snakemake 7/8
 won't work. Tools run in containers that are pulled on first use, and dorado
 is downloaded on first use, so there is nothing else to install.
 `profile/config.yaml` is set up for BioCloud.
@@ -110,7 +110,7 @@ fails on paths that only exist on the cluster.
 | `phylogeny.enabled` | `false` | Genus-level tree; see "Phylogeny". |
 | `phylogeny.taxon` | `"Fungi"` | Any NCBI taxon name or taxid, e.g. `Ascomycota`. Changing it means deleting `data/phylogeny/`. |
 | `bags.enabled` | `false` | Annotation; see "Annotation". |
-| `bags.geneml_version` | `"1.1.0"` | geneML version installed from PyPI. |
+| `bags.geneml_version` | `"1.5.0"` | geneML version installed from PyPI. |
 
 ### Entry points
 | `type:` | Runs |
@@ -201,6 +201,8 @@ BUSCO in protein mode (how complete the annotation is). One row per
 assembly goes in `results/annotation_summary.tsv`. geneML is only on PyPI,
 so it is installed once into `resources/geneml-<version>/`; the antiSMASH
 databases are downloaded once into `resources/antismash_databases/`.
+Changing `bags.geneml_version` re-annotates every assembly (geneML,
+antiSMASH, BUSCO) in the next run with bags on.
 
 ## Phylogeny
 `phylogeny.enabled: true` builds one [UFCG](https://ufcg.steineggerlab.com)
@@ -250,6 +252,7 @@ drawback).
 ```
 results/<sample>/
   report.html                       # charts of reads, grid, k-mer spectra, BUSCO and picks
+  corrected_reads.fasta.gz          # dorado_correct samples: the corrected reads, before min_len (*)
   read_stats.tsv                    # reads at each stage and per grid cell
   polish_groups.tsv                 # polished samples: selectors that picked the same assembly
   telomere_motif_candidates.tsv
@@ -264,6 +267,10 @@ results/annotation_summary.tsv      # bags only
 results/phylogeny/                  # genus_tree.nwk, alignment, tip_labels.tsv
 logs/                               # per rule and sample; logs/hifiasm/ has hifiasm's own output
 ```
+
+(*) New runs only: its input is `temp()`, so a sample whose correction
+finished before this file existed doesn't get it. After a forced rerun
+(`-R`), name it as a target to keep it.
 
 Most of `data/` is deleted once nothing needs it. Kept on purpose:
 `data/dorado_basecall/` (basecalling is expensive), `data/getorganelle/`

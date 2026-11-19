@@ -84,4 +84,4 @@ phylogeny:
 
 bags:
   enabled: false
-  geneml_version: "1.1.0"
+  geneml_version: "1.5.0"
