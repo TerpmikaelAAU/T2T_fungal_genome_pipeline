@@ -268,8 +268,9 @@ results/phylogeny/                  # genus_tree.nwk, alignment, tip_labels.tsv
 logs/                               # per rule and sample; logs/hifiasm/ has hifiasm's own output
 ```
 
-(*) Only made when dorado correct runs anyway, since its input is `temp()`.
-After a forced rerun (`-R`), name it as a target to keep it.
+(*) New runs only: its input is `temp()`, so a sample whose correction
+finished before this file existed doesn't get it. After a forced rerun
+(`-R`), name it as a target to keep it.
 
 Most of `data/` is deleted once nothing needs it. Kept on purpose:
 `data/dorado_basecall/` (basecalling is expensive), `data/getorganelle/`
