@@ -19,7 +19,7 @@ rule chopper:
     # chopper is I/O bound: ~0.6 cores busy whatever --threads is (5% CPU
     # efficiency on 12 threads). Its real memory is ~1-2 GB, but the job's
     # cgroup also counts page cache from streaming the FASTQ: chopper 0.15 on
-    # a ~90 GB SRA FASTQ was OOM-killed at 4 GB and again at 8 GB.
+    # a ~90 GB FASTQ was OOM-killed at 4 GB and again at 8 GB, hence 16 GB.
     threads:
         2
     resources:
