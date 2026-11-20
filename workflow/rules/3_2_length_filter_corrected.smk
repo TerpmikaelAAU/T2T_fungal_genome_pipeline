@@ -14,7 +14,7 @@ rule length_filter_corrected:
     threads:
         2
     resources:
-        mem_mb=scaled_mem(0, 4000),
+        mem_mb=scaled_mem(0, 16000),
         runtime=resources["chopper"]["runtime"]
     container:
         "docker://quay.io/biocontainers/chopper:0.15.0--h7f49ad2_0"

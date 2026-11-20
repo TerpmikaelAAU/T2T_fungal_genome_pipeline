@@ -17,13 +17,13 @@ rule chopper:
     output:
         a = temp("data/chopper/{input}_q{minq}_l{minlen}.fastq")
     # chopper is I/O bound: ~0.6 cores busy whatever --threads is (5% CPU
-    # efficiency on 12 threads). Its real memory is ~1-2 GB; the efficiency
-    # report's "99% memory" is page cache from streaming the FASTQ, which
-    # fills any limit (it read 99% at 8 GB and again at 16 GB, never OOM).
+    # efficiency on 12 threads). Its real memory is ~1-2 GB, but the job's
+    # cgroup also counts page cache from streaming the FASTQ: chopper 0.15 on
+    # a ~90 GB FASTQ was OOM-killed at 4 GB and again at 8 GB, hence 16 GB.
     threads:
         2
     resources:
-        mem_mb=scaled_mem(0, 4000),
+        mem_mb=scaled_mem(0, 16000),
         runtime=resources["chopper"]["runtime"]
     container:
         "docker://quay.io/biocontainers/chopper:0.15.0--h7f49ad2_0"
