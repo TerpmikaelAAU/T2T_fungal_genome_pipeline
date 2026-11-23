@@ -121,11 +121,14 @@ rule correct_merge:
         correct_blocks
     output:
         a = temp("data/dorado/{input}.fasta")
+    # A plain cat, but writing a large FASTA under a small cgroup memory
+    # limit likely stalls on page-cache writeback: ~6 GB of blocks timed out at
+    # 60 min twice with 5 GB. Same 16 GB floor as rule chopper.
     threads:
         2
     resources:
-        mem_mb = resources["correct_merge"]["mem_mb"],
-        runtime = resources["correct_merge"]["runtime"],
+        mem_mb = scaled_mem(0, 16000),
+        runtime = scaled_time(0, 240),
     shell:
         """
         cat {input} > {output.a}
@@ -139,11 +142,12 @@ rule keep_corrected_reads:
         a = "data/dorado/{input}.fasta"
     output:
         a = "results/{input}/corrected_reads.fasta.gz"
+    # Streams the same ~6 GB FASTA; same sizing as correct_merge.
     threads:
         4
     resources:
-        mem_mb = 2000,
-        runtime = 120,
+        mem_mb = scaled_mem(0, 16000),
+        runtime = scaled_time(0, 240),
     container:
         "docker://quay.io/biocontainers/seqkit:2.14.0--hb192632_0"
     conda:

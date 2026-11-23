@@ -405,7 +405,6 @@ resources = {
     "correct_blocks":   {"mem_mb": 32000,  "runtime": 120},
     "correct_overlap":  {"mem_mb": 250000, "runtime": 720},
     "correct_infer":    {"mem_mb": 60000,  "runtime": 480},
-    "correct_merge":    {"mem_mb": 5000,   "runtime": 60},
     "tidk":             {"mem_mb": 2000,   "runtime": 120},  # peaked at ~420 MB (explore)
     # annotation, BAGS (11_annotation_bags.smk)
     "geneml":           {"mem_mb": 48000,  "runtime": 360},
