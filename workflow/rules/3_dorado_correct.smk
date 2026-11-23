@@ -122,7 +122,7 @@ rule correct_merge:
     output:
         a = temp("data/dorado/{input}.fasta")
     # A plain cat, but writing a large FASTA under a small cgroup memory
-    # limit stalls on page-cache writeback: ~6 GB of blocks timed out at
+    # limit likely stalls on page-cache writeback: ~6 GB of blocks timed out at
     # 60 min twice with 5 GB. Same 16 GB floor as rule chopper.
     threads:
         2
@@ -142,7 +142,7 @@ rule keep_corrected_reads:
         a = "data/dorado/{input}.fasta"
     output:
         a = "results/{input}/corrected_reads.fasta.gz"
-    # Same page-cache sizing as correct_merge.
+    # Streams the same ~6 GB FASTA; same sizing as correct_merge.
     threads:
         4
     resources:
