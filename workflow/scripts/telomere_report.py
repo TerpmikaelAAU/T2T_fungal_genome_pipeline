@@ -20,7 +20,7 @@ rows = contig_ends(read_search(snakemake.input.search), pr.min_bp, pr.min_enrich
 rows.sort(key=lambda r: -r["length"])
 with open(snakemake.output.a, "w") as out:
     out.write(f"# motif: {motif}; an end is telomeric with >= {pr.min_bp} bp of motif "
-              f"in its terminal {pr.window} bp window and >= {pr.min_enrichment}x "
+              f"in its terminal {pr.window} bp window and >= {pr.min_enrichment:g}x "
               f"the contig's median interior window\n")
     out.write("contig\tlength\tstart_repeats\tend_repeats\ttelomere_start\ttelomere_end\tt2t\n")
     for r in rows:

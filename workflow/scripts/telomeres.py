@@ -5,7 +5,8 @@ pick_telomere_motif.py, pick_most_t2t.py, telomere_report.py).
 in fixed windows along each contig. A contig END counts as telomeric when
 its terminal window, both orientations together, holds at least `min_bp`
 bp of motif AND at least `min_enrichment` times the contig's median
-interior window. A contig with both ends telomeric is
+interior window (the two windows at each end left out, so a telomere that
+spills past the end window doesn't raise it; median floored at 1). A contig with both ends telomeric is
 telomere-to-telomere (T2T).
 
 The bp floor stops short motifs from winning on copy count alone. The
@@ -55,7 +56,7 @@ def contig_ends(search, min_bp, min_enrichment):
         first, last = windows[0], windows[-1]
         start = first[1] + first[2]
         end = last[1] + last[2]
-        interior = [f + r for _, f, r in windows[1:-1]]
+        interior = [f + r for _, f, r in windows[2:-2]]
         floor = max(min_copies,
                     min_enrichment * max(statistics.median(interior) if interior else 0, 1))
         rows.append({
