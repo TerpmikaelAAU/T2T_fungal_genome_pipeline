@@ -65,7 +65,8 @@ telomere:
   explore_max_len: 12
   explore_threshold: 10
   window: 2000
-  min_repeats: 10
+  min_bp: 60
+  min_enrichment: 5
   rerun_hifiasm: true
   rerun_min_fraction: 0.8
   rerun_min_ends: 4

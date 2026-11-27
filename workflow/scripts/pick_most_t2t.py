@@ -29,7 +29,8 @@ with open(snakemake.log[0], "w") as log:
     print("cell\tt2t_contigs\ttelomeric_ends\tcontigs", file=log)
     for fasta, _, _ in cells:
         search = search_of[fasta]
-        ends, t2t, n = tally(contig_ends(read_search(search), snakemake.params.min_repeats))
+        ends, t2t, n = tally(contig_ends(read_search(search), snakemake.params.telo_min_bp,
+                                         snakemake.params.telo_min_enrichment))
         if n == 0:
             continue
         print(f"{fasta}\t{t2t}\t{ends}\t{n}", file=log)

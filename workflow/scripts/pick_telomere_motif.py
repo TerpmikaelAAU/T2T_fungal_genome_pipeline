@@ -4,7 +4,8 @@ decide whether hifiasm should be re-run with it (see
 
 Each of the top candidates from `tidk explore` was searched with
 `tidk search` on the same assembly. The best motif is the one that makes
-the most contig ends telomeric (ties: higher explore count, then shorter).
+the most contig ends telomeric (see telomeres.py; ties: higher explore
+count, then shorter).
 It "covers" a fraction of the telomeres: its telomeric ends out of every
 end any candidate found telomeric. hifiasm is re-run with it
 (--telo-m) only if that fraction and its number of ends both clear the
@@ -29,9 +30,8 @@ with open(os.path.join(cand_dir, "candidates.tsv")) as fh:
     next(fh)
     for line in fh:
         rank, motif, count = line.rstrip("\n").split("\t")[:3]
-        rows = contig_ends(
-            read_search(os.path.join(cand_dir, f"rank{rank}_telomeric_repeat_windows.tsv")),
-            p.min_repeats)
+        contigs, _ = read_search(os.path.join(cand_dir, f"rank{rank}_telomeric_repeat_windows.tsv"))
+        rows = contig_ends((contigs, motif), p.min_bp, p.min_enrichment)
         ends, t2t, _ = tally(rows)
         telomeric = {(r["contig"], side) for r in rows
                      for side in ("start", "end") if r[f"telomere_{side}"]}

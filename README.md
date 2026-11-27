@@ -101,7 +101,7 @@ fails on paths that only exist on the cluster.
 | `telomere.top_motifs` | `10` | Candidate motifs from `tidk explore` tried with `tidk search`. |
 | `telomere.explore_min_len`, `explore_max_len` | `5`, `12` | Repeat unit lengths (bp) `tidk explore` tries. |
 | `telomere.explore_threshold` | `10` | Units in a row that count as a repeat run. tidk's default of 100 misses short fungal telomeres. |
-| `telomere.window`, `min_repeats` | `2000`, `10` | An end is telomeric with at least `min_repeats` motif copies in its last `window` bp. |
+| `telomere.window`, `min_bp`, `min_enrichment` | `2000`, `60`, `5` | An end is telomeric when its last `window` bp hold at least `min_bp` bp of motif (10 copies of a 6-mer) and at least `min_enrichment` times the contig's median window. The second test stops short AT-rich motifs, common everywhere in AT-rich genomes, from passing as telomeres. |
 | `telomere.rerun_hifiasm` | `true` | Re-assemble every cell with `hifiasm --telo-m <motif>` when the motif is clear (below). Doubles the hifiasm cost. |
 | `telomere.rerun_min_fraction`, `rerun_min_ends` | `0.8`, `4` | The motif is clear when it covers at least this fraction of all telomeric ends found and at least this many ends. |
 | `telomere.fallback_motif` | `TTAGGG` | Used for the counts when no candidate finds a telomere; hifiasm isn't re-run then. |

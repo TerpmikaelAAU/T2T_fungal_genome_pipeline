@@ -50,7 +50,8 @@ rule telomere_report:
     output:
         a = "results/{input}/{selector}/telomeres.tsv",
     params:
-        min_repeats = TELO.get("min_repeats", 10),
+        min_bp         = TELO_MIN_BP,
+        min_enrichment = TELO_MIN_ENRICHMENT,
         window      = TELO.get("window", 2000),
     threads:
         1
