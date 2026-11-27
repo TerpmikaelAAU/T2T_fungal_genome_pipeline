@@ -98,7 +98,8 @@ rule telomere_motif:
         motif = "data/telomere/{input}/motif.tsv",
         table = "results/{input}/telomere_motif_candidates.tsv",
     params:
-        min_repeats   = TELO.get("min_repeats", 10),
+        min_bp         = TELO_MIN_BP,
+        min_enrichment = TELO_MIN_ENRICHMENT,
         min_fraction  = TELO.get("rerun_min_fraction", 0.8),
         min_ends      = TELO.get("rerun_min_ends", 4),
         fallback      = TELO.get("fallback_motif", "TTAGGG"),

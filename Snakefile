@@ -96,6 +96,11 @@ wildcard_constraints:
 TELO = config.get("telomere", {})
 TELOMERE_ON = bool(TELO.get("enabled", False))
 TELO_RERUN = TELOMERE_ON and bool(TELO.get("rerun_hifiasm", True))
+if "min_repeats" in TELO:
+    raise WorkflowError("telomere.min_repeats was replaced by min_bp and "
+                        "min_enrichment; see README \"Configuring a run\".")
+TELO_MIN_BP = int(TELO.get("min_bp", 60))
+TELO_MIN_ENRICHMENT = float(TELO.get("min_enrichment", 5))
 
 # Contamination screen (config `contamination:`): Tiara on every final
 # assembly, see 8_contamination_tiara.smk.

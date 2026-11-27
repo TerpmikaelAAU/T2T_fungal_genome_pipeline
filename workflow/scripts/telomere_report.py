@@ -15,12 +15,13 @@ with open(snakemake.input.motif) as fh:
         if key == "motif":
             motif = value
 
-rows = contig_ends(read_search(snakemake.input.search), snakemake.params.min_repeats)
+pr = snakemake.params
+rows = contig_ends(read_search(snakemake.input.search), pr.min_bp, pr.min_enrichment)
 rows.sort(key=lambda r: -r["length"])
 with open(snakemake.output.a, "w") as out:
-    out.write(f"# motif: {motif}; an end is telomeric with >= "
-              f"{snakemake.params.min_repeats} repeats in its terminal "
-              f"{snakemake.params.window} bp window\n")
+    out.write(f"# motif: {motif}; an end is telomeric with >= {pr.min_bp} bp of motif "
+              f"in its terminal {pr.window} bp window and >= {pr.min_enrichment:g}x "
+              f"the contig's median interior window\n")
     out.write("contig\tlength\tstart_repeats\tend_repeats\ttelomere_start\ttelomere_end\tt2t\n")
     for r in rows:
         out.write(f"{r['contig']}\t{r['length']}\t{r['start_repeats']}\t{r['end_repeats']}\t"
